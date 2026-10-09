@@ -11,7 +11,7 @@ Kein Build-Schritt, reine ES-Module. Node (ab v22) nur für Tests und den lokale
 
 ```bash
 node tools/serve.js          # http://localhost:8080/hiit-zirkel/
-node --test test/            # automatische Tests
+node --test                  # automatische Tests
 ```
 
 Plan und Entscheidungen: [docs/PLAN.md](docs/PLAN.md)
