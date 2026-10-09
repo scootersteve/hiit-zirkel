@@ -10,7 +10,7 @@ import * as speech from '../platform/speech.js';
 import { esc } from './dom.js';
 
 const MODE_HINT = {
-  playback: 'Töne kommen auch bei Stummschalter. Andere Musik (z.B. Spotify) wird dabei pausiert.',
+  playback: 'Töne kommen auch bei Stummschalter. Spotify wird beim ersten Ton pausiert und läuft danach nicht von selbst weiter.',
   ambient: 'Töne mischen sich mit Spotify. Stummschalter ausschalten, sonst sind die Töne stumm.',
 };
 
