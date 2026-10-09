@@ -24,9 +24,11 @@ function countdownCues(prevRemaining, nextRemaining) {
   }));
 }
 
-function halfwayCues(phase, durationMs, prevElapsed, nextElapsed) {
+// Halfway refers to the planned work time: "+10 s" extends the second half (second side)
+// and never moves the side switch or triggers it twice.
+function halfwayCues(phase, prevElapsed, nextElapsed) {
   if (phase.type !== PHASE.WORK) return [];
-  const half = durationMs / 2;
+  const half = phase.durationMs / 2;
   if (half < HALFWAY_MIN_MS) return [];
   if (!(prevElapsed < half && nextElapsed >= half)) return [];
   return [{ type: phase.exercise?.sides ? CUE.SIDE_SWITCH : CUE.HALFWAY }];
@@ -43,7 +45,7 @@ export function cuesBetween(prev, next, maxGapMs = MAX_GAP_MS) {
 
   if (next.phaseIndex === prev.phaseIndex) {
     const cues = [
-      ...halfwayCues(prev.phase, next.phaseDurationMs, prev.phaseElapsedMs, next.phaseElapsedMs),
+      ...halfwayCues(prev.phase, prev.phaseElapsedMs, next.phaseElapsedMs),
       ...countdownCues(prev.phaseRemainingMs, next.phaseRemainingMs),
     ];
     if (next.status === STATUS.FINISHED) cues.push({ type: CUE.FINISHED });
@@ -53,10 +55,10 @@ export function cuesBetween(prev, next, maxGapMs = MAX_GAP_MS) {
   // Crossed into a new phase: finish the old one, start the new one, then whatever
   // already happened inside the new phase.
   const cues = [
-    ...halfwayCues(prev.phase, prev.phaseDurationMs, prev.phaseElapsedMs, prev.phaseDurationMs),
+    ...halfwayCues(prev.phase, prev.phaseElapsedMs, prev.phaseDurationMs),
     ...countdownCues(prev.phaseRemainingMs, 0),
     { type: CUE.PHASE_START, phaseIndex: next.phaseIndex },
-    ...halfwayCues(next.phase, next.phaseDurationMs, 0, next.phaseElapsedMs),
+    ...halfwayCues(next.phase, 0, next.phaseElapsedMs),
     ...countdownCues(next.phaseDurationMs, next.phaseRemainingMs),
   ];
   if (next.status === STATUS.FINISHED) cues.push({ type: CUE.FINISHED });

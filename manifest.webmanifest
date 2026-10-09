@@ -1,0 +1,12 @@
+{
+  "name": "Zirkel Dojo",
+  "short_name": "Zirkel Dojo",
+  "description": "HIIT- und Zirkeltraining-Timer",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0f13",
+  "theme_color": "#0d0f13",
+  "lang": "de"
+}

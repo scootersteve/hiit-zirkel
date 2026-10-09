@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildPlan } from '../js/core/plan.js';
-import { createTimer, settle, start, view, pause } from '../js/core/timer.js';
+import { createTimer, settle, start, view, pause, addTime } from '../js/core/timer.js';
 import { cuesBetween, canAnnounce, CUE } from '../js/core/cues.js';
 
 const ex = (n, sidesAt = []) =>
@@ -93,4 +93,24 @@ test('Ansage nur, wenn sie vor den Countdown passt', () => {
   assert.equal(canAnnounce(5_000, text), false);
   // with a faster voice (measured on the iPhone later) shorter phases work too
   assert.equal(canAnnounce(7_000, text, 70), true);
+});
+
+test('+10 s nach dem Seitenwechsel: kein zweiter Seitenwechsel, Halbzeit bleibt bei der geplanten Zeit', () => {
+  let t = start(createTimer(buildPlan({ rounds: 1, workS: 40, restS: 0, roundRestS: 0, prepS: 0 }, ex(1, [0]))), T0);
+  let prev = view(t, T0);
+  const cues = [];
+  for (let now = T0 + 250; now <= T0 + 60_000; now += 250) {
+    if (now === T0 + 25_000) {
+      t = addTime(t, now); // after the switch at 20 s
+      prev = view(t, now);
+    }
+    t = settle(t, now);
+    const next = view(t, now);
+    cues.push(...cuesBetween(prev, next).map((c) => ({ ...c, at: now - T0 })));
+    prev = next;
+  }
+  const switches = cues.filter((c) => c.type === CUE.SIDE_SWITCH);
+  assert.deepEqual(switches.map((c) => c.at), [20_000]);
+  assert.equal(cues.at(-1).type, CUE.FINISHED);
+  assert.equal(cues.at(-1).at, 50_000);
 });

@@ -2,7 +2,7 @@
 
 HIIT- und Zirkeltraining-Timer als Web-App (PWA) fürs iPhone. Kostenlos, ohne Konto, ohne Server. Alle Daten bleiben auf dem eigenen Gerät.
 
-- App: https://scootersteve.github.io/hiit-zirkel/ (noch im Aufbau)
+- App: https://scootersteve.github.io/hiit-zirkel/ (Version 0.1.0: Timer mit Beispiel-Zirkeln)
 - Ton-Machbarkeitstest: https://scootersteve.github.io/hiit-zirkel/soundtest/
 
 ## Entwicklung
@@ -14,7 +14,7 @@ node tools/serve.js          # http://localhost:8080/hiit-zirkel/
 node --test                  # automatische Tests
 ```
 
-Plan und Entscheidungen: [docs/PLAN.md](docs/PLAN.md)
+Plan und Entscheidungen: [docs/PLAN.md](docs/PLAN.md) · iPhone-Tests: [docs/iphone-checkliste.md](docs/iphone-checkliste.md)
 
 ## Lizenz
 

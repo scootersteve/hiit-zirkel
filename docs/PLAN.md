@@ -44,6 +44,8 @@ running | paused ── Abbrechen (nach Rückfrage) ──▶ aborted
 - **Tatsächliche Dauer** = gesamte Workout-Zeit vom Start bis zum Ende, inklusive Vorlauf, Belastungen, Pausen, Rundenpausen und Cool-down. Nicht enthalten ist nur die Zeit, in der die Pause-Taste gedrückt war (Anforderung: "Die Pausenzeit zählt nicht zur verstrichenen Trainingszeit").
 - **Verstrichene Trainingszeit** (oben im Timer) = dieselbe Rechnung, live.
 - **Absolvierte Runde** = ihre letzte Belastung ist zu Ende (durch Zeitablauf oder Überspringen).
+- **Halbzeit / Seitenwechsel** = Hälfte der geplanten Belastungszeit. "+10 s" verlängert die zweite Hälfte (zweite Seite), der Seitenwechsel kommt nie doppelt.
+- **Anzeige "Runde x/y · Übung n/m"** zeigt in Pausen schon die kommende Übung, passend zu "Als Nächstes".
 - Der Hinweis "Neue Version verfügbar" erscheint nie während eines laufenden Trainings.
 
 ## Datenmodell (IndexedDB `hiit-zirkel`, Version 1)
