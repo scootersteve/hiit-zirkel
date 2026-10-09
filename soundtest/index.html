@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1115">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Ton-Test">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="soundtest.css">
+  <title>Ton-Test</title>
+</head>
+<body>
+  <header>
+    <h1>Ton-Test</h1>
+    <p class="hint">Zirkel Dojo · Machbarkeitstest für Ton, Bildschirm und Uhr</p>
+  </header>
+
+  <section class="card">
+    <h2>Gerät</h2>
+    <dl id="device" class="facts"></dl>
+    <p class="hint" id="mode-hint"></p>
+  </section>
+
+  <details class="card">
+    <summary>So testest du (Checkliste)</summary>
+    <ol class="steps">
+      <li><b>Zuerst als Home-Bildschirm-App</b> (Teilen → Zum Home-Bildschirm, dann über das Symbol öffnen). Danach, wenn Zeit ist, dasselbe im Safari-Tab. Ergebnisse speichern sich getrennt pro Modus.</li>
+      <li><b>Stummschalter-Test:</b> Spotify aus, Stummschalter an. Für jeden Audio-Modus unter 1. einmal „Piep Web Audio“. Dann „Piep &lt;audio&gt;“ und eine Ansage unter 2. Unter 5. eintragen: hörbar ja/nein.</li>
+      <li><b>Spotify-Test:</b> Stummschalter aus, Spotify läuft hörbar. Für jeden Modus Piep tippen und eintragen: läuft weiter, wird leiser oder pausiert. Wenn pausiert: 10 s warten, kommt Spotify von selbst zurück? Danach Spotify wieder starten, nächster Modus.</li>
+      <li><b>Ansage:</b> Stimme notieren (steht unter 2.), beide Ansagen abspielen, einmal ohne und einmal mit Spotify.</li>
+      <li><b>Unterbrechung:</b> Modus „playback“, Dauertest starten, Siri aktivieren oder dich anrufen lassen, zurück zur Seite. Kommt der Piep von selbst wieder?</li>
+      <li><b>AirPods:</b> Modus „playback“, ein paar Pieps. Merkst du eine Verzögerung zum Tippen?</li>
+      <li><b>Bildschirm:</b> Einstellungen → Anzeige &amp; Helligkeit → Automatische Sperre → 30 Sekunden. Dann Wake Lock an und 20 min liegen lassen. „Ununterbrochen sichtbar“ sollte danach über 20:00 stehen. Optional: dasselbe mit Stromsparmodus.</li>
+      <li><b>Uhren:</b> Uhren starten, 60 s zu WhatsApp und zurück. Dann Handy 60 s sperren und entsperren. Das Protokoll zeigt, wie weit beide Uhren gelaufen sind.</li>
+      <li>Unter 5. „Ergebnis kopieren“ und per WhatsApp oder in den Chat schicken. iOS-Version bitte aus Einstellungen → Allgemein → Info in die Notizen schreiben.</li>
+    </ol>
+  </details>
+
+  <section class="card">
+    <h2>1. Audio-Modus und Piep</h2>
+    <p class="hint">Modus wählen, dann Piep. Beim Wechsel wird der Ton neu aufgebaut.</p>
+    <div class="seg" id="session-types"></div>
+    <p class="status">audioSession: <b id="session-type">–</b> · Zustand: <b id="session-state">–</b><br>AudioContext: <b id="ctx-state">–</b></p>
+    <div class="row">
+      <button id="beep-webaudio" class="big">Piep Web Audio</button>
+      <button id="beep-element" class="big">Piep &lt;audio&gt;</button>
+    </div>
+    <label class="field">Dauertest-Quelle
+      <select id="loop-source">
+        <option value="webaudio">Web Audio</option>
+        <option value="element">&lt;audio&gt;-Element</option>
+      </select>
+    </label>
+    <button id="loop-toggle" class="big secondary">Dauertest starten (alle 5 s)</button>
+    <p class="status">Pieps im Dauertest: <b id="loop-count">0</b></p>
+  </section>
+
+  <section class="card">
+    <h2>2. Sprachansage</h2>
+    <label class="field">Stimme <select id="voice"></select></label>
+    <p class="status" id="voice-info">–</p>
+    <button id="say-pause" class="big">„Pause. Als Nächstes: Kniebeugen“</button>
+    <button id="say-round" class="big">„Runde 1 geschafft, noch 2“</button>
+    <p class="status">Letzte Ansage: <b id="speech-ms">–</b></p>
+  </section>
+
+  <section class="card">
+    <h2>3. Bildschirm wach halten</h2>
+    <p class="hint">Vorher die automatische Sperre auf 30 Sekunden stellen, sonst beweist der Test nichts.</p>
+    <button id="wake-toggle" class="big">Wake Lock anfordern</button>
+    <p class="status">Wake Lock: <b id="wake-state">aus</b><br>Ununterbrochen sichtbar: <b id="visible-since">–</b></p>
+  </section>
+
+  <section class="card">
+    <h2>4. Uhren-Test</h2>
+    <p class="hint">Vergleicht Wanduhr (Date.now) und Laufzeituhr (performance.now) nach App-Wechsel und Sperre.</p>
+    <button id="clock-start" class="big">Uhren starten</button>
+    <dl class="facts">
+      <dt>Date.now</dt><dd id="clock-date">–</dd>
+      <dt>performance.now</dt><dd id="clock-perf">–</dd>
+      <dt>Differenz</dt><dd id="clock-diff">–</dd>
+    </dl>
+  </section>
+
+  <section class="card">
+    <h2>5. Ergebnisse</h2>
+    <p class="hint">Wird automatisch auf diesem Gerät gespeichert.</p>
+    <div id="results"></div>
+    <label class="field">Notizen (iOS-Version, Auffälligkeiten)
+      <textarea id="notes" rows="4"></textarea>
+    </label>
+    <button id="copy" class="big">Ergebnis kopieren</button>
+    <p class="status" id="copy-state"></p>
+    <textarea id="copy-fallback" rows="8" hidden></textarea>
+    <button id="reset" class="big danger">Ergebnisse und Protokoll löschen</button>
+  </section>
+
+  <section class="card">
+    <h2>Protokoll</h2>
+    <ol id="log" class="log"></ol>
+  </section>
+
+  <script type="module" src="soundtest.js"></script>
+</body>
+</html>

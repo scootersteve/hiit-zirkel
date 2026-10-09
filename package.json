@@ -1,0 +1,12 @@
+{
+  "name": "hiit-zirkel",
+  "private": true,
+  "description": "Zirkel Dojo: HIIT-Zirkeltimer als PWA. Keine Abhängigkeiten, Node nur für Tests und Testserver.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "serve": "node tools/serve.js",
+    "sounds": "node tools/make-sounds.js"
+  },
+  "license": "MIT"
+}

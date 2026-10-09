@@ -1,0 +1,11 @@
+{
+  "name": "Ton-Test (Zirkel Dojo)",
+  "short_name": "Ton-Test",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "lang": "de"
+}
