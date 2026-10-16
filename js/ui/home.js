@@ -61,6 +61,7 @@ export function showHome(root, {
   onSettingsChange = () => {},
   onOpenLibrary = () => {},
   onOpenHistory = () => {},
+  onOpenData = () => {},
   onNewCircuit = () => {},
   onEditCircuit = () => {},
 }) {
@@ -73,8 +74,9 @@ export function showHome(root, {
       </header>
 
       <div class="home-nav">
-        <button class="btn ghost" data-nav="library">Übungen verwalten</button>
+        <button class="btn ghost" data-nav="library">Übungen</button>
         <button class="btn ghost" data-nav="history">Verlauf</button>
+        <button class="btn ghost" data-nav="data">Daten</button>
       </div>
 
       <h2>Meine Zirkel</h2>
@@ -131,6 +133,8 @@ export function showHome(root, {
       onOpenLibrary();
     } else if (nav === 'history') {
       onOpenHistory();
+    } else if (nav === 'data') {
+      onOpenData();
     } else if (nav === 'new') {
       onNewCircuit();
     } else if (card) {

@@ -11,10 +11,12 @@ import {
   updateTemplate,
   historyFromResult,
 } from './core/circuit.js';
+import { encodeCircuit, decodeCircuit } from './core/transfer.js';
 import { showHome } from './ui/home.js';
 import { showLibrary } from './ui/library.js';
 import { showEditor } from './ui/editor.js';
 import { showHistory } from './ui/history.js';
+import { showData } from './ui/data.js';
 import { showRun } from './ui/run.js';
 import { showDone } from './ui/done.js';
 import { registerServiceWorker, applyUpdate } from './platform/update.js';
@@ -75,6 +77,10 @@ async function home() {
       leaveHome();
       showHistory(root, { db, onBack: home });
     },
+    onOpenData: () => {
+      leaveHome();
+      showData(root, { db, onBack: home });
+    },
     onNewCircuit: () => openEditor(newCircuit(), false),
     onEditCircuit: (circuit, kind) => openEditor(circuitFromTemplate(circuit), kind === 'template'),
     onStart: (circuit, kind) => run(circuitFromTemplate(circuit), kind === 'template' ? circuit.id : null),
@@ -93,6 +99,7 @@ function openEditor(working, isExisting) {
       onRun: (c) => run(c, isExisting ? c.id : null),
       onSave: saveCircuit,
       onDelete: deleteCircuit,
+      onShare: shareCircuit,
       onBack: home,
     });
 
@@ -148,4 +155,51 @@ function run(circuit, templateId = null) {
   });
 }
 
-home();
+async function shareCircuit(circuit) {
+  const url = `${location.origin}${location.pathname}#share=${encodeCircuit(circuit)}`;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Zirkel Dojo', text: `Zirkel „${circuit.name || 'Mein Zirkel'}"`, url });
+    } catch {
+      /* user cancelled the share sheet */
+    }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('Link kopiert');
+  } catch {
+    toast(url);
+  }
+}
+
+function toast(message) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = message;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 300);
+  }, 2200);
+}
+
+// A shared circuit arrives as #share=… in the URL: open it in the editor and clear the hash so a
+// reload does not re-trigger it. The payload is decoded on the device and never sent anywhere.
+function boot() {
+  const match = location.hash.match(/[#&]share=([^&]+)/);
+  if (match) {
+    history.replaceState(null, '', location.pathname + location.search);
+    try {
+      const circuit = decodeCircuit(match[1]);
+      openEditor({ name: circuit.name, exercises: circuit.exercises, settings: circuit.settings }, false);
+      return;
+    } catch (err) {
+      console.warn('Geteilter Zirkel konnte nicht gelesen werden:', err);
+    }
+  }
+  home();
+}
+
+boot();

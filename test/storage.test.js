@@ -111,6 +111,39 @@ test('Vorlagen: speichern, auflisten, lastUsedAt touchen, löschen', async () =>
   assert.deepEqual((await db.listTemplates()).map((t) => t.id), ['t-1']);
 });
 
+test('collectData + importData: Round-Trip über die Fassade, idempotent', async () => {
+  const src = createDb(createMemoryStore());
+  await src.saveCustomExercise({ id: 'c-a', name: 'Eigene A' });
+  await src.saveTemplate({ id: 't-a', name: 'Zirkel A', exercises: [], settings: {}, lastUsedAt: 5 });
+  await src.addHistory({ id: 'h-a', startedAt: 1, status: 'completed', circuit: { name: 'X' } });
+  await src.touchExerciseUsage('burpees', 1234);
+  await src.saveSettings({ ...DEFAULT_SETTINGS, volume: 0.4 });
+  const data = await src.collectData();
+  assert.equal(data.customExercises.length, 1);
+  assert.equal(data.templates.length, 1);
+  assert.equal(data.history.length, 1);
+  assert.equal(data.exerciseUsage.burpees, 1234);
+  assert.equal(data.settings.volume, 0.4);
+
+  const dst = createDb(createMemoryStore());
+  const counts = await dst.importData(data);
+  assert.deepEqual(counts, { customExercises: 1, templates: 1, history: 1 });
+  assert.equal((await dst.listTemplates())[0].id, 't-a');
+  assert.equal((await dst.loadSettings()).volume, 0.4);
+  await dst.importData(data); // zweiter Import → keine Dubletten
+  assert.equal((await dst.listHistory()).length, 1);
+  assert.equal((await dst.listTemplates()).length, 1);
+});
+
+test('importData: Nutzungszeiten mergen auf das Maximum', async () => {
+  const db = createDb(createMemoryStore());
+  await db.touchExerciseUsage('squats', 500);
+  await db.importData({ exerciseUsage: { squats: 100, pushups: 999 } });
+  const usage = await db.getExerciseUsage();
+  assert.equal(usage.squats, 500);
+  assert.equal(usage.pushups, 999);
+});
+
 test('Verlauf: hinzufügen vergibt id, auflisten, löschen, leeren', async () => {
   const db = createDb(createMemoryStore());
   const a = await db.addHistory({ startedAt: 1000, status: 'completed', circuit: { name: 'X' } });
