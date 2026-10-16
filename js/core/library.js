@@ -3,6 +3,7 @@
 
 import { EXERCISES, CATEGORIES, EQUIPMENT } from '../data/exercises.js';
 import { MUSCLES } from '../data/muscles.js';
+import { makeId } from './id.js';
 
 /** Fold text for search: lowercase, drop diacritics (ü→u), ß→ss, collapse whitespace. */
 export function fold(text) {
@@ -46,20 +47,8 @@ export function findDuplicate(list, name) {
   return list.find((e) => dedupeKey(e.name) === key) || null;
 }
 
-// No look-alike characters (0/o, 1/l/i), so an id is easy to read out loud if ever needed.
-const ID_ALPHABET = 'abcdefghjkmnpqrstvwxyz23456789';
-
 /** A fresh custom-exercise id like "c-x7k2", guaranteed not to collide with `existingIds`. */
-export function generateId(existingIds = []) {
-  const taken = new Set(existingIds);
-  let id;
-  do {
-    let s = '';
-    for (let i = 0; i < 4; i++) s += ID_ALPHABET[Math.floor(Math.random() * ID_ALPHABET.length)];
-    id = `c-${s}`;
-  } while (taken.has(id));
-  return id;
-}
+export const generateId = (existingIds = []) => makeId('c', existingIds);
 
 const cleanMuscles = (muscles) =>
   Array.isArray(muscles) ? [...new Set(muscles.filter((m) => m in MUSCLES))] : [];

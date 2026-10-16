@@ -320,6 +320,8 @@ dialog.confirm p { margin: 0 0 16px; color: var(--muted); }
 .ex-meta { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
 .ex-muscles { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .ex-row .icon-btn { flex: none; background: var(--surface-2); }
+.btn.ex-add { width: auto; flex: none; min-height: 44px; padding: 0 14px; font-size: 15px; white-space: nowrap; }
+.btn.ex-add.added { background: var(--phase-rest); color: #fff; }
 
 .chip { border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--text); font-size: 14px; padding: 6px 12px; min-height: 44px; }
 .chip.sm { min-height: 0; padding: 3px 9px; font-size: 12px; font-weight: 600; }
@@ -343,6 +345,79 @@ fieldset.field { border: 0; margin: 0; padding: 0; }
 .lib-actions .btn + .btn { margin-top: 0; }
 .lib-del-confirm { display: grid; gap: 10px; }
 .lib-del-confirm p { margin: 0; color: var(--text); font-weight: 700; }
+
+/* ---------- circuit editor ---------- */
+
+.edit-name { display: grid; gap: 6px; margin: 4px 0 14px; }
+.edit-name > span, .edit-settings .field > span { font-size: 14px; color: var(--muted); }
+.edit-name input[type="text"], .edit-settings input[type="number"] {
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  width: 100%;
+}
+.edit-settings input[type="number"] { font-variant-numeric: tabular-nums; }
+
+.edit-duration-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.edit-duration-card > span { color: var(--muted); font-size: 15px; }
+.edit-duration { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.edit-ex-list { list-style: none; margin: 8px 0; padding: 0; counter-reset: ex; }
+.edit-ex {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 8px 10px 8px 14px;
+  margin: 8px 0;
+}
+.edit-ex-name { flex: 1; min-width: 0; font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; overflow-wrap: anywhere; }
+.edit-ex-name::before { counter-increment: ex; content: counter(ex) ". "; color: var(--muted); font-weight: 700; }
+.edit-ex-time { flex: none; display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: 14px; }
+.edit-ex-time input {
+  width: 64px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.edit-ex-ctrl { flex: none; display: flex; gap: 2px; }
+.edit-ex-ctrl .icon-btn { min-width: 40px; padding: 0 6px; font-size: 20px; color: var(--text); }
+.edit-ex-ctrl .icon-btn[disabled] { opacity: 0.3; }
+.icon-btn.danger-text { color: var(--danger); }
+
+.edit-uniform { border-top: 0; margin-top: 4px; }
+.edit-actions { margin-top: 24px; }
+.edit-actions .btn + .btn { margin-top: 10px; }
+.edit-actions .mode-hint { text-align: center; }
+.edit-delete { margin-top: 28px; display: grid; gap: 10px; }
+.edit-delete .lib-del-confirm { margin-top: 2px; }
+
+/* ---------- home: nav, cards, history ---------- */
+
+.home-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 4px; }
+.home-nav .btn { margin: 0; }
+.home-empty { margin: 8px 2px; }
+.circuit-actions { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-top: 4px; }
+.circuit-actions .btn { margin: 0; }
+
+.hist-row { display: flex; align-items: flex-start; gap: 12px; }
+.hist-main { flex: 1; min-width: 0; }
+.hist-main h3 { margin: 0; font-size: 19px; }
+.hist-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.hist-duration { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.hist-status { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--phase-rest); color: #fff; }
+.hist-status.aborted { background: var(--surface-2); color: var(--muted); }
 
 /* ---------- done screen ---------- */
 

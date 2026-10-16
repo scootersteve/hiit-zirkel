@@ -1,5 +1,5 @@
-// Start screen (preview): sample circuits and sound settings.
-// Later the settings move to their own page and the circuits come from saved templates.
+// Start screen: own circuits (templates), example circuits, sound settings, and nav to the
+// exercise library and the history. Templates are passed in; app.js loads them.
 
 import { plannedDurationS } from '../core/plan.js';
 import { formatDuration } from '../core/format.js';
@@ -24,7 +24,7 @@ const SIGNAL_LABELS = {
   finished: 'Ende',
 };
 
-function circuitCard(c) {
+function circuitCard(c, kind) {
   const s = c.settings;
   const n = c.exercises.length;
   const meta = [
@@ -41,7 +41,10 @@ function circuitCard(c) {
       </div>
       <p class="circuit-meta">${meta.join(' · ')}</p>
       <p class="circuit-exercises">${c.exercises.map((e) => esc(e.name)).join(', ')}</p>
-      <button class="btn primary" data-start="${esc(c.id)}">Start</button>
+      <div class="circuit-actions">
+        <button class="btn primary" data-card="start" data-kind="${kind}" data-id="${esc(c.id)}">Start</button>
+        <button class="btn ghost" data-card="edit" data-kind="${kind}" data-id="${esc(c.id)}">Bearbeiten</button>
+      </div>
     </article>`;
 }
 
@@ -51,19 +54,37 @@ const toggleRow = (key, label, hint, checked) => `
     <span class="switch"><input type="checkbox" data-toggle="${key}" ${checked ? 'checked' : ''}><span></span></span>
   </label>`;
 
-export function showHome(root, { settings, onStart, onSettingsChange = () => {}, onOpenLibrary = () => {} }) {
+export function showHome(root, {
+  settings,
+  templates = [],
+  onStart,
+  onSettingsChange = () => {},
+  onOpenLibrary = () => {},
+  onOpenHistory = () => {},
+  onNewCircuit = () => {},
+  onEditCircuit = () => {},
+}) {
   document.body.classList.remove('running');
   root.innerHTML = `
     <main class="page">
       <header class="page-head">
         <h1>Zirkel Dojo</h1>
-        <p class="muted">Vorschau: Timer mit Beispiel-Zirkeln. Editor, eigene Vorlagen und Verlauf folgen.</p>
+        <p class="muted">Zirkel zusammenstellen, speichern und starten.</p>
       </header>
 
-      <button class="btn ghost" data-nav="library">Übungen verwalten</button>
+      <div class="home-nav">
+        <button class="btn ghost" data-nav="library">Übungen verwalten</button>
+        <button class="btn ghost" data-nav="history">Verlauf</button>
+      </div>
 
-      <h2>Zirkel</h2>
-      ${SAMPLE_CIRCUITS.map(circuitCard).join('')}
+      <h2>Meine Zirkel</h2>
+      ${templates.length
+        ? templates.map((t) => circuitCard(t, 'template')).join('')
+        : '<p class="muted home-empty">Noch keine eigenen Zirkel. Erstelle deinen ersten.</p>'}
+      <button class="btn primary" data-nav="new">+ Neuer Zirkel</button>
+
+      <h2>Beispiele</h2>
+      ${SAMPLE_CIRCUITS.map((c) => circuitCard(c, 'sample')).join('')}
 
       <h2>Ton</h2>
       <section class="card">
@@ -105,21 +126,28 @@ export function showHome(root, { settings, onStart, onSettingsChange = () => {},
   root.querySelector('.page').addEventListener('click', (event) => {
     const target = event.target.closest('button');
     if (!target) return;
-    if (target.dataset.nav === 'library') {
+    const { nav, card, kind, id, mode, signal } = target.dataset;
+    if (nav === 'library') {
       onOpenLibrary();
-    } else if (target.dataset.start) {
-      const circuit = SAMPLE_CIRCUITS.find((c) => c.id === target.dataset.start);
-      if (circuit) onStart(circuit);
-    } else if (target.dataset.mode) {
-      settings.soundMode = target.dataset.mode;
+    } else if (nav === 'history') {
+      onOpenHistory();
+    } else if (nav === 'new') {
+      onNewCircuit();
+    } else if (card) {
+      const circuit = kind === 'template' ? templates.find((t) => t.id === id) : SAMPLE_CIRCUITS.find((c) => c.id === id);
+      if (!circuit) return;
+      if (card === 'start') onStart(circuit, kind);
+      else onEditCircuit(circuit, kind);
+    } else if (mode) {
+      settings.soundMode = mode;
       audio.setMode(settings.soundMode);
       renderMode();
       onSettingsChange();
-    } else if (target.dataset.signal) {
+    } else if (signal) {
       audio.setMode(settings.soundMode);
       audio.setVolume(settings.volume);
       audio.unlock();
-      audio.play(target.dataset.signal);
+      audio.play(signal);
     }
   });
 

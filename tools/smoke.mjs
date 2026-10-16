@@ -199,6 +199,74 @@ try {
   const gone = await waitEval(`!document.querySelector('[data-el="dialog"]').open && ![...document.querySelectorAll('.ex-name')].some(h=>h.textContent.includes('Smoke Test Übung'))`).then(() => true).catch(() => false);
   check('Eigene Übung gelöscht', gone);
 
+  // ---- circuit editor → start → history ----
+  const setVal = (sel, value) =>
+    evaluate(`(()=>{const el=document.querySelector('${sel}'); el.value=${JSON.stringify(String(value))}; el.dispatchEvent(new Event('input',{bubbles:true})); return true;})()`);
+
+  // Back to home, open the editor for a new circuit
+  await evaluate(`document.querySelector('[data-action="back"]').click(); true`);
+  await waitEval(`document.querySelector('[data-nav="new"]')`);
+  await evaluate(`document.querySelector('[data-nav="new"]').click(); true`);
+  await waitEval(`document.querySelector('[data-el="name"]')`);
+  await setVal('[data-el="name"]', 'Smoke Zirkel');
+  for (const [k, v] of [['rounds', 1], ['workS', 2], ['restS', 0], ['roundRestS', 0], ['prepS', 0]]) await setVal(`[data-setting="${k}"]`, v);
+
+  // Add two exercises via the picker
+  await evaluate(`document.querySelector('[data-action="add"]').click(); true`);
+  await waitEval(`document.querySelector('[data-pick]')`);
+  await evaluate(`const bs=document.querySelectorAll('[data-pick]'); bs[0].click(); bs[1].click(); true`);
+  await evaluate(`document.querySelector('[data-action="back"]').click(); true`); // "Fertig"
+  await waitEval(`document.querySelectorAll('.edit-ex').length === 2`);
+  const dur0 = await evaluate(`document.querySelector('[data-el="duration"]').textContent`);
+  check('Editor: zwei Übungen, Dauer 0:04 (1 Runde × 2×2 s)', dur0 === '0:04', dur0);
+
+  // Per-exercise time: turn off "same length", give the first exercise 5 s
+  await evaluate(`(()=>{const u=document.querySelector('[data-el="uniform"]'); u.checked=false; u.dispatchEvent(new Event('change',{bubbles:true})); return true;})()`);
+  await waitEval(`document.querySelector('[data-time="0"]')`);
+  await setVal('[data-time="0"]', 5);
+  const dur1 = await evaluate(`document.querySelector('[data-el="duration"]').textContent`);
+  check('Editor: Pro-Übung-Zeit wirkt (5 s + 2 s = 0:07)', dur1 === '0:07', dur1);
+
+  // Save as template → appears on home
+  await evaluate(`document.querySelector('[data-action="save"]').click(); true`);
+  await waitEval(`[...document.querySelectorAll('.circuit-head h3')].some(h=>h.textContent.includes('Smoke Zirkel'))`);
+  check('Vorlage gespeichert und auf der Startseite', true);
+
+  // Start the template, skip to the end
+  await evaluate(`document.querySelector('[data-card="start"][data-kind="template"]').click(); true`);
+  await waitEval(`document.querySelector('.run')`);
+  await evaluate(`document.querySelector('[data-action="skip"]').click(); true`);
+  await evaluate(`document.querySelector('[data-action="skip"]').click(); true`);
+  await waitEval(`document.querySelector('.done')`);
+  check('Zirkel gestartet und bis zum Ende durchgelaufen', true);
+
+  // Back to overview, history now has an entry for this run
+  await evaluate(`document.querySelector('[data-action="home"]').click(); true`);
+  await waitEval(`document.querySelector('[data-nav="history"]')`);
+  await evaluate(`document.querySelector('[data-nav="history"]').click(); true`);
+  await waitEval(`document.querySelector('.lib-head')`);
+  const histHit = await evaluate(`[...document.querySelectorAll('.hist-main h3')].some(h=>h.textContent.includes('Smoke Zirkel'))`);
+  check('Verlauf enthält den Lauf', histHit);
+
+  // Persists across reload
+  await send('Page.reload');
+  await waitEval(`document.querySelector('#app main')`);
+  await evaluate(`document.querySelector('[data-nav="history"]').click(); true`);
+  await waitEval(`document.querySelector('.lib-head')`);
+  const histPersist = await waitEval(`[...document.querySelectorAll('.hist-main h3')].some(h=>h.textContent.includes('Smoke Zirkel'))`).then(() => true).catch(() => false);
+  check('Verlauf bleibt nach Reload (IndexedDB)', histPersist);
+
+  // Edit the template, delete it → gone from home
+  await evaluate(`document.querySelector('[data-action="back"]').click(); true`);
+  await waitEval(`document.querySelector('[data-card="edit"][data-kind="template"]')`);
+  await evaluate(`document.querySelector('[data-card="edit"][data-kind="template"]').click(); true`);
+  await waitEval(`document.querySelector('[data-action="delete"]')`);
+  await evaluate(`document.querySelector('[data-action="delete"]').click(); true`);
+  await waitEval(`!document.querySelector('[data-el="del-confirm"]').hidden`);
+  await evaluate(`document.querySelector('[data-action="delete-confirm"]').click(); true`);
+  const tmplGone = await waitEval(`document.querySelector('[data-nav="new"]') && ![...document.querySelectorAll('.circuit-head h3')].some(h=>h.textContent.includes('Smoke Zirkel'))`).then(() => true).catch(() => false);
+  check('Vorlage gelöscht', tmplGone);
+
   // The browser auto-requests /favicon.ico; a 404 there is not an app error.
   const appProblems = problems.filter((p) => !p.includes('/favicon.ico'));
   check('Keine App-Konsolenfehler / Exceptions', appProblems.length === 0, appProblems.join(' | ') || '(favicon.ico 404 ignoriert, browser-eigen)');

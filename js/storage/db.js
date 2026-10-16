@@ -3,6 +3,7 @@
 // validating and de-duplicating exercises lives in js/core/library.js.
 
 import { openStore } from './store.js';
+import { makeId } from '../core/id.js';
 
 // The app/sound/theme settings (kv: "settings"). Separate from the per-circuit timer settings
 // in js/core/plan.js. Loading always merges onto these, so a new field gets its default.
@@ -52,6 +53,40 @@ export function createDb(store) {
       usage[id] = at;
       await store.put('kv', usage, 'exerciseUsage');
       return usage;
+    },
+
+    listTemplates() {
+      return store.all('templates');
+    },
+    saveTemplate(template) {
+      return store.put('templates', template);
+    },
+    removeTemplate(id) {
+      return store.delete('templates', id);
+    },
+    async touchTemplate(id, at = Date.now()) {
+      const template = await store.get('templates', id);
+      if (!template) return null;
+      template.lastUsedAt = at;
+      await store.put('templates', template);
+      return template;
+    },
+
+    listHistory() {
+      return store.all('history');
+    },
+    // Assigns a collision-free id if the record has none.
+    async addHistory(record) {
+      const existing = await store.all('history');
+      const entry = record.id ? record : { ...record, id: makeId('h', existing.map((e) => e.id)) };
+      await store.put('history', entry);
+      return entry;
+    },
+    removeHistory(id) {
+      return store.delete('history', id);
+    },
+    clearHistory() {
+      return store.clear('history');
     },
   };
 }

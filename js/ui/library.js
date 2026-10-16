@@ -27,12 +27,17 @@ const muscleChips = (group, selected) =>
     )
     .join('');
 
-function exerciseRow(e) {
+function exerciseRow(e, pickMode) {
   const meta = [CATEGORIES[e.category], e.equipment !== 'none' ? EQUIPMENT[e.equipment] : null].filter(Boolean);
   const muscles = [
     ...e.primaryMuscles.map((m) => `<span class="chip sm">${esc(MUSCLES[m] || m)}</span>`),
     ...e.secondaryMuscles.map((m) => `<span class="chip sm muted">${esc(MUSCLES[m] || m)}</span>`),
   ].join('');
+  const action = pickMode
+    ? `<button class="btn primary ex-add" data-pick="${esc(e.id)}">+ Hinzufügen</button>`
+    : e.custom
+      ? `<button class="icon-btn" data-edit="${esc(e.id)}" aria-label="${esc(e.name)} bearbeiten">Bearbeiten</button>`
+      : '';
   return `
     <article class="ex-row">
       <div class="ex-main">
@@ -40,11 +45,14 @@ function exerciseRow(e) {
         <p class="ex-meta">${meta.map(esc).join(' · ')}</p>
         ${muscles ? `<p class="ex-muscles">${muscles}</p>` : ''}
       </div>
-      ${e.custom ? `<button class="icon-btn" data-edit="${esc(e.id)}" aria-label="${esc(e.name)} bearbeiten">Bearbeiten</button>` : ''}
+      ${action}
     </article>`;
 }
 
-export async function showLibrary(root, { db, onBack }) {
+// pick(exercise): optional. When given, the screen is a picker for the circuit editor; each row
+// adds an exercise and "Fertig" (onBack) returns. Without it, the screen just manages exercises.
+export async function showLibrary(root, { db, onBack, pick = null }) {
+  const pickMode = typeof pick === 'function';
   let custom = await db.listCustomExercises();
   const filter = { query: '', category: '', equipment: '' };
   let editing = null; // the custom exercise being edited, or null for a new one
@@ -52,8 +60,8 @@ export async function showLibrary(root, { db, onBack }) {
   root.innerHTML = `
     <main class="page">
       <header class="lib-head">
-        <button class="icon-btn" data-action="back" aria-label="Zurück">‹ Zurück</button>
-        <h1>Übungen</h1>
+        <button class="icon-btn" data-action="back" aria-label="${pickMode ? 'Fertig' : 'Zurück'}">${pickMode ? '‹ Fertig' : '‹ Zurück'}</button>
+        <h1>${pickMode ? 'Übung hinzufügen' : 'Übungen'}</h1>
         <button class="btn primary lib-add" data-action="add">+ Eigene</button>
       </header>
 
@@ -80,8 +88,22 @@ export async function showLibrary(root, { db, onBack }) {
     const shown = filterExercises(all, filter).sort(byName);
     countEl.textContent = `${shown.length} von ${all.length} Übungen`;
     listEl.innerHTML = shown.length
-      ? shown.map(exerciseRow).join('')
+      ? shown.map((e) => exerciseRow(e, pickMode)).join('')
       : `<p class="lib-empty">Keine Übung gefunden. ${custom.length || filter.query || filter.category || filter.equipment ? 'Filter ändern' : ''}</p>`;
+  }
+
+  function pickExercise(id, btn) {
+    const exercise = combineExercises(custom).find((e) => e.id === id);
+    if (!exercise) return;
+    pick(exercise);
+    btn.textContent = '✓ Hinzugefügt';
+    btn.classList.add('added');
+    setTimeout(() => {
+      if (root.contains(btn)) {
+        btn.textContent = '+ Hinzufügen';
+        btn.classList.remove('added');
+      }
+    }, 1200);
   }
 
   function openDialog(exercise) {
@@ -203,12 +225,14 @@ export async function showLibrary(root, { db, onBack }) {
   // Native dialog closes on Escape/backdrop; make sure the delete-confirm never sticks for next open.
   dialog.addEventListener('close', () => toggleDeleteConfirm(false));
 
-  root.addEventListener('click', (event) => {
+  // Delegated to this screen's <main> (dies when the screen is left) rather than the persistent #app.
+  root.querySelector('main').addEventListener('click', (event) => {
     const btn = event.target.closest('button');
     if (!btn) return;
     const { action, edit, muscle } = btn.dataset;
     if (action === 'back') onBack();
     else if (action === 'add') openDialog(null);
+    else if (btn.dataset.pick) pickExercise(btn.dataset.pick, btn);
     else if (edit) openDialog(custom.find((c) => c.id === edit));
     else if (muscle) btn.setAttribute('aria-pressed', btn.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
     else if (action === 'save') save();

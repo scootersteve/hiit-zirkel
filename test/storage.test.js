@@ -96,3 +96,33 @@ test('Nutzungszeiten: touchen setzt Zeitstempel, bestehende bleiben', async () =
   await db.touchExerciseUsage('burpees', 3000);
   assert.deepEqual(await db.getExerciseUsage(), { burpees: 3000, squats: 2000 });
 });
+
+test('Vorlagen: speichern, auflisten, lastUsedAt touchen, löschen', async () => {
+  const db = createDb(createMemoryStore());
+  assert.deepEqual(await db.listTemplates(), []);
+  await db.saveTemplate({ id: 't-1', name: 'A', exercises: [], settings: {}, lastUsedAt: 1000 });
+  await db.saveTemplate({ id: 't-2', name: 'B', exercises: [], settings: {}, lastUsedAt: 2000 });
+  assert.equal((await db.listTemplates()).length, 2);
+  const touched = await db.touchTemplate('t-1', 5000);
+  assert.equal(touched.lastUsedAt, 5000);
+  assert.equal((await db.listTemplates()).find((t) => t.id === 't-1').lastUsedAt, 5000);
+  assert.equal(await db.touchTemplate('gibt-es-nicht', 9000), null);
+  await db.removeTemplate('t-2');
+  assert.deepEqual((await db.listTemplates()).map((t) => t.id), ['t-1']);
+});
+
+test('Verlauf: hinzufügen vergibt id, auflisten, löschen, leeren', async () => {
+  const db = createDb(createMemoryStore());
+  const a = await db.addHistory({ startedAt: 1000, status: 'completed', circuit: { name: 'X' } });
+  const b = await db.addHistory({ startedAt: 2000, status: 'aborted', circuit: { name: 'Y' } });
+  assert.match(a.id, /^h-[a-z0-9]{4}$/);
+  assert.notEqual(a.id, b.id);
+  assert.equal((await db.listHistory()).length, 2);
+  // vorhandene id wird respektiert
+  const c = await db.addHistory({ id: 'h-fix0', startedAt: 3000, status: 'completed', circuit: { name: 'Z' } });
+  assert.equal(c.id, 'h-fix0');
+  await db.removeHistory(a.id);
+  assert.equal((await db.listHistory()).length, 2);
+  await db.clearHistory();
+  assert.deepEqual(await db.listHistory(), []);
+});
