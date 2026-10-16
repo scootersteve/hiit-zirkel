@@ -236,7 +236,7 @@ export function showRun(root, { circuit, settings, onEnd }) {
       status: state.status, // finished | aborted
       startedAt: state.startedAt,
       endedAt: state.endedAt,
-      plannedMs: plannedDurationS(circuit.settings, circuit.exercises.length) * 1000,
+      plannedMs: plannedDurationS(circuit.settings, circuit.exercises) * 1000,
       actualMs: state.activeMs,
       roundsCompleted: v.roundsCompleted,
       rounds: plan.rounds,

@@ -1,11 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPlan, plannedDurationS, normalizeSettings, PHASE } from '../js/core/plan.js';
+import { buildPlan, plannedDurationS, workSecondsFor, normalizeSettings, PHASE } from '../js/core/plan.js';
 
 const ex = (n, sidesAt = []) =>
   Array.from({ length: n }, (_, i) => ({ id: `e${i + 1}`, name: `Übung ${i + 1}`, sides: sidesAt.includes(i) }));
 const sumS = (plan) => plan.phases.reduce((acc, p) => acc + p.durationMs, 0) / 1000;
 const types = (plan) => plan.phases.map((p) => p.type);
+const workSecs = (plan) => plan.phases.filter((p) => p.type === PHASE.WORK).map((p) => p.durationMs / 1000);
 
 test('Abnahmetest: 6 Übungen, 40/20, 3 Runden, Rundenpause 90, Vorlauf 10 = 1210 s', () => {
   const settings = { rounds: 3, workS: 40, restS: 20, roundRestS: 90, prepS: 10, warmupS: 0, cooldownS: 0 };
@@ -105,6 +106,63 @@ test('Formel und Ablaufplan stimmen für viele zufällige Einstellungen überein
     };
     const n = 1 + rand(9);
     assert.equal(sumS(buildPlan(settings, ex(n))), plannedDurationS(settings, n), JSON.stringify({ settings, n }));
+  }
+});
+
+test('Pro-Übung-Belastungszeit überschreibt die globale, fehlende fallen zurück', () => {
+  const settings = { rounds: 2, workS: 40, restS: 20, roundRestS: 60, prepS: 0 };
+  // Plank (zweite Übung) läuft 60 s, der Rest bei 40 s.
+  const exercises = [
+    { id: 'e1', name: 'Übung 1' },
+    { id: 'e2', name: 'Plank', workS: 60 },
+    { id: 'e3', name: 'Übung 3' },
+  ];
+  const plan = buildPlan(settings, exercises);
+  // je Runde drei Belastungen: 40, 60, 40
+  assert.deepEqual(workSecs(plan), [40, 60, 40, 40, 60, 40]);
+  // 2 × (40 + 60 + 40) + 2 × (2 × 20) + 1 × 60 = 280 + 80 + 60 = 420
+  assert.equal(plannedDurationS(settings, exercises), 420);
+  assert.equal(sumS(plan), 420);
+});
+
+test('plannedDurationS: Anzahl und Liste ohne Überschreibungen sind gleich', () => {
+  const settings = { rounds: 3, workS: 40, restS: 20, roundRestS: 90, prepS: 10 };
+  assert.equal(plannedDurationS(settings, 6), plannedDurationS(settings, ex(6)));
+});
+
+test('workSecondsFor: eigene Zeit, Rückfall, Klammerung, ungültige Werte', () => {
+  const settings = { workS: 40 };
+  assert.equal(workSecondsFor({ workS: 60 }, settings), 60);
+  assert.equal(workSecondsFor({ workS: null }, settings), 40); // "wie der Rest"
+  assert.equal(workSecondsFor({}, settings), 40); // nicht gesetzt
+  assert.equal(workSecondsFor({ workS: 0 }, settings), 1); // untere Grenze
+  assert.equal(workSecondsFor({ workS: 7.6 }, settings), 8); // ganze Zahl
+  assert.equal(workSecondsFor({ workS: 'abc' }, settings), 40); // ungültig → Rückfall
+});
+
+test('Pro-Übung-Zeiten: Formel und Ablaufplan stimmen für viele Zufallsfälle überein', () => {
+  let seed = 7;
+  const rand = (max) => {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed % (max + 1);
+  };
+  for (let i = 0; i < 500; i++) {
+    const settings = {
+      rounds: 1 + rand(9),
+      workS: 1 + rand(120),
+      restS: rand(60),
+      roundRestS: rand(180),
+      prepS: rand(15),
+      warmupS: rand(1) ? 0 : rand(300),
+      cooldownS: rand(1) ? 0 : rand(300),
+    };
+    const n = 1 + rand(9);
+    const exercises = Array.from({ length: n }, (_, k) => {
+      const e = { id: `e${k + 1}`, name: `Übung ${k + 1}` };
+      if (rand(2)) e.workS = 1 + rand(120); // zwei Drittel der Übungen bekommen eine eigene Zeit
+      return e;
+    });
+    assert.equal(sumS(buildPlan(settings, exercises)), plannedDurationS(settings, exercises), JSON.stringify({ settings, exercises }));
   }
 });
 

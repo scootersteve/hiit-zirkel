@@ -282,6 +282,68 @@ dialog.confirm h2 { margin: 0 0 6px; font-size: 22px; }
 dialog.confirm p { margin: 0 0 16px; color: var(--muted); }
 .btn.danger { background: var(--danger); color: #111; }
 
+/* ---------- library screen ---------- */
+
+.lib-head { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; margin: 4px 0 10px; }
+.lib-head h1 { font-size: 26px; margin: 0; text-align: center; }
+.icon-btn {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 16px;
+  font-weight: 700;
+}
+.btn.lib-add { width: auto; min-height: 44px; padding: 0 14px; font-size: 16px; }
+
+.lib-filters { display: grid; gap: 10px; }
+.lib-search, .lib-selects select, .lib-form input[type="text"], .lib-form select {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+.lib-selects { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.lib-count { font-size: 14px; color: var(--muted); margin: 14px 2px 6px; }
+
+.ex-row { display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: var(--radius); padding: 14px; margin: 8px 0; }
+.ex-main { flex: 1; min-width: 0; }
+.ex-name { margin: 0; font-size: 19px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.ex-tag { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); letter-spacing: 0.03em; }
+.ex-tag.own { background: var(--accent); color: var(--accent-text); }
+.ex-meta { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+.ex-muscles { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.ex-row .icon-btn { flex: none; background: var(--surface-2); }
+
+.chip { border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--text); font-size: 14px; padding: 6px 12px; min-height: 44px; }
+.chip.sm { min-height: 0; padding: 3px 9px; font-size: 12px; font-weight: 600; }
+.chip.muted { color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 700; }
+
+.lib-empty { text-align: center; color: var(--muted); padding: 30px 10px; }
+
+/* create / edit dialog */
+dialog.lib-dialog { width: min(94vw, 480px); max-height: 90vh; overflow: auto; }
+.lib-form { display: grid; gap: 14px; text-align: left; }
+.field { display: grid; gap: 6px; }
+.field > span, .field legend { font-size: 14px; color: var(--muted); padding: 0; }
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field-warn { margin: 0; font-size: 14px; color: var(--accent); }
+.field-warn[data-el="error"] { color: var(--danger); }
+fieldset.field { border: 0; margin: 0; padding: 0; }
+.chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.lib-sides { border-top: 0; min-height: 48px; }
+.lib-actions { display: grid; gap: 10px; }
+.lib-actions .btn + .btn { margin-top: 0; }
+.lib-del-confirm { display: grid; gap: 10px; }
+.lib-del-confirm p { margin: 0; color: var(--text); font-weight: 700; }
+
 /* ---------- done screen ---------- */
 
 .done { text-align: center; }

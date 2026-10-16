@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node --test",
     "serve": "node tools/serve.js",
+    "smoke": "node tools/smoke.mjs",
     "sounds": "node tools/make-sounds.js"
   },
   "license": "MIT"

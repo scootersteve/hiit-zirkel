@@ -42,24 +42,43 @@ export function normalizeSettings(settings = {}) {
 }
 
 /**
- * Planned duration in seconds, straight from the formula in the requirements:
- * prep + warmup + rounds × (n × work + (n − 1) × rest) + (rounds − 1) × roundRest + cooldown
+ * Work seconds for a single exercise: its own `workS` if set and valid, otherwise the global one.
+ * A per-exercise time is a circuit-level override (e.g. Plank 60 s while the rest stay at 40 s);
+ * it is clamped like every other time. `null`/absent means "same as the rest".
  */
-export function plannedDurationS(settings, exerciseCount) {
-  if (exerciseCount < 1) return 0;
+const resolveWorkS = (exercise, globalWorkS) =>
+  exercise && exercise.workS != null && Number.isFinite(Number(exercise.workS))
+    ? clampInt(exercise.workS, 1, MAX_SECONDS)
+    : globalWorkS;
+
+/** Public helper for the editor and the display: the effective work seconds of one exercise. */
+export function workSecondsFor(exercise, settings) {
+  return resolveWorkS(exercise, normalizeSettings(settings).workS);
+}
+
+/**
+ * Planned duration in seconds, straight from the formula in the requirements:
+ * prep + warmup + rounds × (Σ workᵢ + (n − 1) × rest) + (rounds − 1) × roundRest + cooldown
+ * `exercises` may be a plain count (all exercises share the global work time) or the list of
+ * snapshots (each may carry its own `workS`). Both paths use the same formula.
+ */
+export function plannedDurationS(settings, exercises) {
   const s = normalizeSettings(settings);
-  const n = exerciseCount;
+  const list = typeof exercises === 'number' ? Array.from({ length: exercises }, () => ({})) : exercises;
+  const n = list.length;
+  if (n < 1) return 0;
+  const sumWork = list.reduce((acc, e) => acc + resolveWorkS(e, s.workS), 0);
   return (
     s.prepS +
     s.warmupS +
-    s.rounds * (n * s.workS + (n - 1) * s.restS) +
+    s.rounds * (sumWork + (n - 1) * s.restS) +
     (s.rounds - 1) * s.roundRestS +
     s.cooldownS
   );
 }
 
 /**
- * exercises: [{ id, name, sides }]
+ * exercises: [{ id, name, sides, workS? }]  (workS optional, overrides the global work time)
  * Returns { phases, rounds, exerciseCount }.
  * Each phase: { type, durationMs, round, exerciseIndex, exercise, next }
  *  - round (1-based) and exerciseIndex (0-based) say where in the workout the phase sits.
@@ -85,7 +104,7 @@ export function buildPlan(settings, exercises) {
     for (let i = 0; i < n; i++) {
       const lastInRound = i === n - 1;
       const next = !lastInRound ? exercises[i + 1] : !lastRound ? exercises[0] : null;
-      add(PHASE.WORK, s.workS, round, i, exercises[i], next);
+      add(PHASE.WORK, resolveWorkS(exercises[i], s.workS), round, i, exercises[i], next);
       if (!lastInRound) add(PHASE.REST, s.restS, round, i, null, next);
       else if (!lastRound) add(PHASE.ROUND_REST, s.roundRestS, round, i, null, next); // replaces the normal rest
       // after the very last exercise: no rest at all

@@ -37,7 +37,7 @@ function circuitCard(c) {
     <article class="card">
       <div class="circuit-head">
         <h3>${esc(c.name)}</h3>
-        <span class="circuit-duration">${formatDuration(plannedDurationS(s, n))}</span>
+        <span class="circuit-duration">${formatDuration(plannedDurationS(s, c.exercises))}</span>
       </div>
       <p class="circuit-meta">${meta.join(' · ')}</p>
       <p class="circuit-exercises">${c.exercises.map((e) => esc(e.name)).join(', ')}</p>
@@ -51,7 +51,7 @@ const toggleRow = (key, label, hint, checked) => `
     <span class="switch"><input type="checkbox" data-toggle="${key}" ${checked ? 'checked' : ''}><span></span></span>
   </label>`;
 
-export function showHome(root, { settings, onStart }) {
+export function showHome(root, { settings, onStart, onSettingsChange = () => {}, onOpenLibrary = () => {} }) {
   document.body.classList.remove('running');
   root.innerHTML = `
     <main class="page">
@@ -59,6 +59,8 @@ export function showHome(root, { settings, onStart }) {
         <h1>Zirkel Dojo</h1>
         <p class="muted">Vorschau: Timer mit Beispiel-Zirkeln. Editor, eigene Vorlagen und Verlauf folgen.</p>
       </header>
+
+      <button class="btn ghost" data-nav="library">Übungen verwalten</button>
 
       <h2>Zirkel</h2>
       ${SAMPLE_CIRCUITS.map(circuitCard).join('')}
@@ -103,13 +105,16 @@ export function showHome(root, { settings, onStart }) {
   root.querySelector('.page').addEventListener('click', (event) => {
     const target = event.target.closest('button');
     if (!target) return;
-    if (target.dataset.start) {
+    if (target.dataset.nav === 'library') {
+      onOpenLibrary();
+    } else if (target.dataset.start) {
       const circuit = SAMPLE_CIRCUITS.find((c) => c.id === target.dataset.start);
       if (circuit) onStart(circuit);
     } else if (target.dataset.mode) {
       settings.soundMode = target.dataset.mode;
       audio.setMode(settings.soundMode);
       renderMode();
+      onSettingsChange();
     } else if (target.dataset.signal) {
       audio.setMode(settings.soundMode);
       audio.setVolume(settings.volume);
@@ -121,11 +126,13 @@ export function showHome(root, { settings, onStart }) {
   root.querySelector('[data-volume]').addEventListener('input', (event) => {
     settings.volume = Number(event.target.value);
     audio.setVolume(settings.volume);
+    onSettingsChange();
   });
 
   root.querySelectorAll('[data-toggle]').forEach((input) =>
     input.addEventListener('change', () => {
       settings[input.dataset.toggle] = input.checked;
+      onSettingsChange();
     }),
   );
 

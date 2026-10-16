@@ -21,7 +21,9 @@ Ablaufplan = flache Liste von Phasen, einmal aus den Einstellungen erzeugt. Phas
 type = prep | warmup | work | rest | roundRest | cooldown
 ```
 
-Dauer = Vorlauf + Aufwärmen + Runden × (Übungen × Belastung + (Übungen − 1) × Pause) + (Runden − 1) × Rundenpause + Cool-down
+Dauer = Vorlauf + Aufwärmen + Runden × (Σ Belastung je Übung + (Übungen − 1) × Pause) + (Runden − 1) × Rundenpause + Cool-down
+
+Jede Übung kann eine eigene Belastungszeit haben (Snapshot-Feld `workS`); fehlt sie, gilt die globale Belastung. Deshalb wird je Übung summiert statt `Übungen × Belastung` gerechnet.
 
 Zustandsautomat:
 
@@ -56,12 +58,12 @@ running | paused ── Abbrechen (nach Rückfrage) ──▶ aborted
   sides: false, custom: true, createdAt, updatedAt }
 
 // templates
-{ id, name, exercises: [{ id, name }],
+{ id, name, exercises: [{ id, name, workS? }],   // workS optional: eigene Belastungszeit, sonst settings.workS
   settings: { rounds, workS, restS, roundRestS, prepS, warmupS, cooldownS },
   createdAt, updatedAt, lastUsedAt, sample: false }
 
 // history (Kopie des Zirkels zum Trainingszeitpunkt)
-{ id, startedAt, endedAt, templateId, circuit: { name, exercises: [{ id, name, sides }], settings },
+{ id, startedAt, endedAt, templateId, circuit: { name, exercises: [{ id, name, sides, workS? }], settings },
   plannedS, actualS, roundsCompleted, status: "completed" | "aborted" }
 
 // kv
@@ -97,3 +99,4 @@ background, sound-roundDone, sound-end als Blob
 - Tests der Datenhaltung ohne Paket: Speicher-Schnittstelle mit IndexedDB- und In-Memory-Umsetzung.
 - Ton-Test mit `auto`, `playback`, `ambient`, `transient`, `transient-solo`, `<audio>`-Element, Sprachansage, jeweils im Safari-Tab und als Home-Bildschirm-App.
 - Lizenz eigener Code: MIT.
+- Belastungszeit pro Übung unterschiedlich (am 16.10.2026 von „Kann (später)" in V1 gezogen). Umsetzung: optionales `workS` am Übungs-Snapshot, Rückfall auf `settings.workS`. Der Editor fragt „Soll jede Übung gleich lang?": Ja (Standard) = kein Snapshot trägt `workS`; Nein = je Übung einstellbar, nicht gesetzte fallen weiter auf global zurück. Timer unverändert (phasenbasiert), Seitenwechsel bezieht sich auf die jeweilige Phasen-Belastung.
