@@ -17,6 +17,7 @@ import { showEditor } from './ui/editor.js';
 import { showHistory } from './ui/history.js';
 import { showRun } from './ui/run.js';
 import { showDone } from './ui/done.js';
+import { registerServiceWorker, applyUpdate } from './platform/update.js';
 
 const db = await openDb(); // IndexedDB in the browser, in-memory fallback otherwise — never throws
 let settings;
@@ -36,6 +37,25 @@ function persistSettings() {
 
 const root = document.getElementById('app');
 
+// "Neue Version verfügbar" hint: only shown on the start screen, never during a training.
+const updateBanner = document.getElementById('update-banner');
+let updateReg = null;
+let onHome = false;
+function refreshBanner() {
+  updateBanner.hidden = !(updateReg && onHome);
+}
+function leaveHome() {
+  onHome = false;
+  refreshBanner();
+}
+updateBanner.querySelector('[data-action="update"]').addEventListener('click', () => applyUpdate(updateReg));
+registerServiceWorker({
+  onUpdateReady: (reg) => {
+    updateReg = reg;
+    refreshBanner();
+  },
+});
+
 async function home() {
   let templates = [];
   try {
@@ -47,15 +67,24 @@ async function home() {
     settings,
     templates,
     onSettingsChange: persistSettings,
-    onOpenLibrary: () => showLibrary(root, { db, onBack: home }),
-    onOpenHistory: () => showHistory(root, { db, onBack: home }),
+    onOpenLibrary: () => {
+      leaveHome();
+      showLibrary(root, { db, onBack: home });
+    },
+    onOpenHistory: () => {
+      leaveHome();
+      showHistory(root, { db, onBack: home });
+    },
     onNewCircuit: () => openEditor(newCircuit(), false),
     onEditCircuit: (circuit, kind) => openEditor(circuitFromTemplate(circuit), kind === 'template'),
     onStart: (circuit, kind) => run(circuitFromTemplate(circuit), kind === 'template' ? circuit.id : null),
   });
+  onHome = true;
+  refreshBanner();
 }
 
 function openEditor(working, isExisting) {
+  leaveHome();
   const rerender = () =>
     showEditor(root, {
       circuit: working,
@@ -107,6 +136,7 @@ function openEditor(working, isExisting) {
 
 // Called synchronously enough from a tap that audio can unlock (iOS rule).
 function run(circuit, templateId = null) {
+  leaveHome();
   if (templateId) db.touchTemplate(templateId).catch(() => {});
   showRun(root, {
     circuit,

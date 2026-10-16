@@ -430,3 +430,35 @@ fieldset.field { border: 0; margin: 0; padding: 0; }
 .done-stats dt { font-size: 14px; color: var(--muted); }
 .done-stats dd { margin: 2px 0 0; font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .done-planned { font-size: 14px; color: var(--muted); margin: -14px 0 24px; }
+
+/* ---------- update hint ---------- */
+
+.update-banner {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: calc(100vw - 24px);
+  padding: 8px 8px 8px 18px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  font-size: 15px;
+  font-weight: 600;
+}
+.update-banner[hidden] { display: none; }
+.update-banner button {
+  flex: none;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 800;
+  font-size: 15px;
+}

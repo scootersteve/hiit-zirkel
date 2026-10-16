@@ -66,9 +66,9 @@ try {
   await waitFor(async () => (await fetch(BASE)).ok);
 
   // Static resource check: every module and the stylesheet must serve 200.
-  const resources = ['', 'js/app.js', 'js/ui/home.js', 'js/ui/library.js', 'js/ui/run.js', 'js/ui/done.js',
-    'js/storage/db.js', 'js/storage/store.js', 'js/storage/memory.js', 'js/storage/indexeddb.js', 'js/storage/schema.js',
-    'js/core/library.js', 'js/core/plan.js', 'js/core/timer.js', 'css/app.css'];
+  const resources = ['', 'js/app.js', 'js/ui/home.js', 'js/ui/library.js', 'js/ui/editor.js', 'js/ui/history.js',
+    'js/ui/run.js', 'js/ui/done.js', 'js/platform/update.js', 'js/storage/db.js', 'js/core/circuit.js',
+    'js/core/library.js', 'js/core/plan.js', 'css/app.css', 'sw.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png'];
   let all200 = true;
   for (const r of resources) {
     const res = await fetch(BASE + r);
@@ -267,7 +267,23 @@ try {
   const tmplGone = await waitEval(`document.querySelector('[data-nav="new"]') && ![...document.querySelectorAll('.circuit-head h3')].some(h=>h.textContent.includes('Smoke Zirkel'))`).then(() => true).catch(() => false);
   check('Vorlage gelöscht', tmplGone);
 
-  // The browser auto-requests /favicon.ico; a 404 there is not an app error.
+  // ---- service worker / offline ----
+  await send('Network.enable');
+  const swActive = await waitEval(`navigator.serviceWorker && navigator.serviceWorker.controller !== null`, { tries: 150, delay: 100 }).then(() => true).catch(() => false);
+  check('Service Worker aktiv und steuert die Seite', swActive);
+
+  // Go offline and reload — the app must still render from the cache
+  await send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+  await send('Page.reload');
+  const offlineOk = await waitEval(`document.querySelector('#app main')`).then(() => true).catch(() => false);
+  check('App rendert offline (Service-Worker-Cache)', offlineOk);
+  await send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+
+  // Manifest advertises installable icons
+  const iconCount = await evaluate(`fetch('manifest.webmanifest').then(r=>r.json()).then(m=>(m.icons||[]).length)`);
+  check('Manifest mit Icons (installierbar)', iconCount >= 2, `${iconCount} Icons`);
+
+  // Offline failures for cached assets would show here; only the browser's favicon is expected to 404.
   const appProblems = problems.filter((p) => !p.includes('/favicon.ico'));
   check('Keine App-Konsolenfehler / Exceptions', appProblems.length === 0, appProblems.join(' | ') || '(favicon.ico 404 ignoriert, browser-eigen)');
 } finally {

@@ -7,7 +7,9 @@
     "test": "node --test",
     "serve": "node tools/serve.js",
     "smoke": "node tools/smoke.mjs",
-    "sounds": "node tools/make-sounds.js"
+    "sounds": "node tools/make-sounds.js",
+    "icons": "node tools/make-icons.js",
+    "build:sw": "node tools/build-sw.js"
   },
   "license": "MIT"
 }
