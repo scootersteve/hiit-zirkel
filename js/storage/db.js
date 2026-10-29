@@ -88,6 +88,36 @@ export function createDb(store) {
     clearHistory() {
       return store.clear('history');
     },
+
+    async collectData() {
+      const [customExercises, templates, history, exerciseUsage, settings] = await Promise.all([
+        store.all('customExercises'),
+        store.all('templates'),
+        store.all('history'),
+        store.get('kv', 'exerciseUsage'),
+        store.get('kv', 'settings'),
+      ]);
+      return { customExercises, templates, history, exerciseUsage: exerciseUsage || {}, settings: settings || {} };
+    },
+    // Merge import: records go in by id (overwrite same id), usage keeps the newer timestamp,
+    // settings apply over the defaults. Re-importing the same backup is idempotent.
+    async importData(data) {
+      const counts = { customExercises: 0, templates: 0, history: 0 };
+      for (const e of data.customExercises || []) if (e && e.id != null) { await store.put('customExercises', e); counts.customExercises++; }
+      for (const t of data.templates || []) if (t && t.id != null) { await store.put('templates', t); counts.templates++; }
+      for (const h of data.history || []) if (h && h.id != null) { await store.put('history', h); counts.history++; }
+      if (data.exerciseUsage && Object.keys(data.exerciseUsage).length) {
+        const usage = (await store.get('kv', 'exerciseUsage')) || {};
+        for (const [id, at] of Object.entries(data.exerciseUsage)) usage[id] = Math.max(usage[id] || 0, at || 0);
+        await store.put('kv', usage, 'exerciseUsage');
+      }
+      if (data.settings && Object.keys(data.settings).length) {
+        const clean = {};
+        for (const key of Object.keys(DEFAULT_SETTINGS)) clean[key] = data.settings[key] ?? DEFAULT_SETTINGS[key];
+        await store.put('kv', clean, 'settings');
+      }
+      return counts;
+    },
   };
 }
 

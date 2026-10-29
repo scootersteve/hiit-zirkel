@@ -17,7 +17,7 @@ const SETTINGS_FIELDS = [
   ['cooldownS', 'Cool-down (s)', 0],
 ];
 
-export function showEditor(root, { circuit, isExisting = false, onAddExercise, onRun, onSave, onDelete, onBack }) {
+export function showEditor(root, { circuit, isExisting = false, onAddExercise, onRun, onSave, onDelete, onShare, onBack }) {
   if (circuit.uniformTime === undefined) circuit.uniformTime = isUniform(circuit);
 
   function settingField([key, label, min]) {
@@ -80,6 +80,7 @@ export function showEditor(root, { circuit, isExisting = false, onAddExercise, o
         <div class="edit-actions">
           <button class="btn primary" data-action="start" ${has ? '' : 'disabled'}>Starten</button>
           <button class="btn" data-action="save" ${has ? '' : 'disabled'}>${isExisting ? 'Speichern' : 'Als Vorlage speichern'}</button>
+          <button class="btn ghost" data-action="share" ${has ? '' : 'disabled'}>Teilen</button>
           ${has ? '' : '<p class="mode-hint">Mindestens eine Übung hinzufügen.</p>'}
         </div>
 
@@ -141,6 +142,7 @@ export function showEditor(root, { circuit, isExisting = false, onAddExercise, o
     else if (action === 'add') onAddExercise();
     else if (action === 'start') onRun(circuit);
     else if (action === 'save') onSave(circuit);
+    else if (action === 'share') onShare(circuit);
     else if (action === 'delete') root.querySelector('[data-el="del-confirm"]').hidden = false;
     else if (action === 'delete-cancel') root.querySelector('[data-el="del-confirm"]').hidden = true;
     else if (action === 'delete-confirm') onDelete(circuit);
