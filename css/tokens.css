@@ -1,0 +1,91 @@
+/* Zirkel Dojo – design tokens. Everything else reads only these, so a theme can swap them.
+   Colours use light-dark(): one definition per token, the used colour scheme picks the side.
+   The scheme follows the device (data-theme absent or "auto") or is forced by the setting. */
+
+:root {
+  color-scheme: light dark;
+
+  /* ---- surfaces ---- */
+  --bg: light-dark(#f2f2f7, #000000);            /* page behind grouped content */
+  --surface: light-dark(#ffffff, #1c1c1e);       /* groups, cards, sheets */
+  --surface-2: light-dark(#f2f2f7, #2c2c2e);     /* fields and wells inside a surface */
+  --fill: light-dark(rgb(118 118 128 / 0.14), rgb(118 118 128 / 0.28));        /* gray buttons, tracks */
+  --fill-pressed: light-dark(rgb(118 118 128 / 0.26), rgb(118 118 128 / 0.44));
+  --separator: light-dark(rgb(60 60 67 / 0.2), rgb(84 84 88 / 0.62));
+  --bar: light-dark(rgb(249 249 251 / 0.84), rgb(22 22 24 / 0.8));             /* translucent bars */
+  --thumb: light-dark(#ffffff, #636366);         /* sliding thumb of the segmented control */
+  --scrim: rgb(0 0 0 / 0.42);                                                   /* behind sheets */
+
+  /* ---- text (all pairs with their surface are checked in test/tokens.test.js) ---- */
+  --text: light-dark(#000000, #ffffff);
+  --text-2: light-dark(#5c5c61, #aeaeb2);        /* secondary: meta lines, hints */
+  --text-3: light-dark(#8a8a8e, #7c7c80);        /* placeholders, chevrons, disabled (non-essential) */
+
+  /* ---- accent (Dojo orange) ---- */
+  --accent: light-dark(#b84300, #ff9230);        /* tinted text and icons on a surface */
+  --accent-fill: #ff8a1f;                        /* filled primary button: the same bright orange in both schemes */
+  --on-accent: #1b0f00;
+  --accent-tint: light-dark(rgb(255 138 31 / 0.09), rgb(255 146 48 / 0.18));
+
+  /* ---- status ---- */
+  --success: light-dark(#1d7a36, #30d158);
+  --success-fill: #34c759;                       /* switch "on" */
+  --danger: light-dark(#d70015, #ff6961);
+  --danger-fill: light-dark(#d70015, #ff453a);
+  --on-danger: light-dark(#ffffff, #1a0000);
+  --danger-tint: light-dark(rgb(215 0 21 / 0.08), rgb(255 69 58 / 0.18));
+
+  /* ---- training phases: full-bleed colours, white text, identical in light and dark ---- */
+  --phase-prep: #1d4ed8;
+  --phase-warmup: #b45309;
+  --phase-work: #dc2626;
+  --phase-rest: #15803d;
+  --phase-roundRest: #6d28d9;
+  --phase-cooldown: #0e7490;
+  --on-phase: #ffffff;
+
+  /* ---- type scale (rem = the device's text size: 17px by default on iOS) ---- */
+  --t-large: 2rem;        /* 34 large title */
+  --t-title1: 1.65rem;    /* 28 */
+  --t-title2: 1.3rem;     /* 22 */
+  --t-title3: 1.18rem;    /* 20 */
+  --t-body: 1rem;         /* 17 */
+  --t-callout: 0.94rem;   /* 16 */
+  --t-subhead: 0.885rem;  /* 15 */
+  --t-footnote: 0.825rem; /* 14 smallest size for running text */
+  --t-caption: 0.765rem;  /* 13 badges only */
+  --font: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-rounded: ui-rounded, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; /* numerals */
+
+  /* ---- shape and space ---- */
+  --r-s: 10px;
+  --r-m: 14px;
+  --r-l: 20px;
+  --r-full: 999px;
+  --gutter: 16px;         /* page side margin and inner padding of groups */
+  --gap: 12px;            /* between cards and controls */
+  --tap: 48px;            /* minimum touch target */
+  --tabbar-h: 56px;
+
+  /* ---- depth: only for things that really float (sheet, toast, update hint) ---- */
+  --shadow-float: 0 10px 30px rgb(0 0 0 / 0.22);
+  --shadow-thumb: 0 1px 3px rgb(0 0 0 / 0.2), 0 0 0 0.5px rgb(0 0 0 / 0.06);
+
+  /* ---- motion ---- */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --d-press: 120ms;
+  --d-fast: 180ms;
+  --d-base: 240ms;
+  --d-nav: 360ms;         /* screen-sized movement (push, sheet) */
+
+  /* ---- names the not yet redesigned screens still use ---- */
+  --line: var(--separator);
+  --muted: var(--text-2);
+  --accent-text: var(--on-accent);
+  --radius: var(--r-m);
+}
+
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }

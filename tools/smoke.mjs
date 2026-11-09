@@ -68,8 +68,9 @@ try {
 
   // Static resource check: every module and the stylesheet must serve 200.
   const resources = ['', 'js/app.js', 'js/ui/home.js', 'js/ui/library.js', 'js/ui/editor.js', 'js/ui/history.js',
-    'js/ui/run.js', 'js/ui/done.js', 'js/platform/update.js', 'js/storage/db.js', 'js/core/circuit.js',
-    'js/core/library.js', 'js/core/plan.js', 'css/app.css', 'sw.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png'];
+    'js/ui/settings.js', 'js/ui/tabbar.js', 'js/ui/dom.js', 'js/ui/run.js', 'js/ui/done.js', 'js/platform/update.js',
+    'js/platform/theme.js', 'js/storage/db.js', 'js/core/circuit.js', 'js/core/library.js', 'js/core/plan.js',
+    'css/tokens.css', 'css/base.css', 'css/app.css', 'sw.js', 'manifest.webmanifest', 'icon-192.png', 'apple-touch-icon.png'];
   let all200 = true;
   for (const r of resources) {
     const res = await fetch(BASE + r);
@@ -131,22 +132,56 @@ try {
   await send('Runtime.enable');
   await send('Log.enable');
   await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+  // Reduced motion for the main flow: screens swap at once, so every selector below is
+  // unambiguous. The sliding transition gets its own check further down.
+  const setMotion = (reduce) =>
+    send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: reduce ? 'reduce' : 'no-preference' }] });
+  await setMotion(true);
 
   await send('Page.navigate', { url: BASE });
   await waitEval(`document.querySelector('#app main')`);
   check('Startseite rendert', true);
 
+  const goTab = async (tab, ready) => {
+    await evaluate(`document.querySelector('#tabbar [data-nav="${tab}"]').click(); true`);
+    await waitEval(ready);
+  };
+  const AMBIENT = `[data-segmented="soundMode"] [data-value="ambient"]`;
+
+  // Tab bar: visible on the start screen, current tab marked
+  const tabState = await evaluate(`({ hidden: document.getElementById('tabbar').hidden, current: document.querySelector('#tabbar [aria-current="page"]')?.dataset.nav })`);
+  check('Tab-Leiste sichtbar, Tab "Zirkel" aktiv', tabState.hidden === false && tabState.current === 'home', JSON.stringify(tabState));
+
   // Settings persistence across reload
-  await evaluate(`document.querySelector('[data-mode="ambient"]').click(); true`);
+  await goTab('settings', `document.querySelector('${AMBIENT}')`);
+  await evaluate(`document.querySelector('${AMBIENT}').click(); true`);
   await sleep(700);
   await send('Page.reload');
-  await waitEval(`document.querySelector('[data-mode="ambient"]')`);
-  const modePersisted = await evaluate(`document.querySelector('[data-mode="ambient"]').getAttribute('aria-pressed')`);
+  await waitEval(`document.querySelector('#app main')`);
+  await goTab('settings', `document.querySelector('${AMBIENT}')`);
+  const modePersisted = await evaluate(`document.querySelector('${AMBIENT}').getAttribute('aria-pressed')`);
   check('Einstellung bleibt nach Reload (Musik-Modus)', modePersisted === 'true', `aria-pressed=${modePersisted}`);
 
+  // Appearance: default follows the device; forcing "Dunkel" applies at once and survives a reload
+  const themeDefault = await evaluate(`({ attr: document.documentElement.dataset.theme ?? null, pressed: document.querySelector('[data-segmented="theme"] [aria-pressed="true"]').dataset.value })`);
+  check('Darstellung: Standard ist Automatisch', themeDefault.attr === null && themeDefault.pressed === 'auto', JSON.stringify(themeDefault));
+  await evaluate(`document.querySelector('[data-segmented="theme"] [data-value="dark"]').click(); true`);
+  const themeNow = await evaluate(`({ attr: document.documentElement.dataset.theme, scheme: getComputedStyle(document.documentElement).colorScheme, bg: getComputedStyle(document.body).backgroundColor })`);
+  check('Darstellung: Dunkel wirkt sofort', themeNow.attr === 'dark' && themeNow.bg === 'rgb(0, 0, 0)', JSON.stringify(themeNow));
+  await sleep(700);
+  await send('Page.reload');
+  await waitEval(`document.querySelector('#app main')`);
+  const themeAfter = await evaluate(`document.documentElement.dataset.theme`);
+  check('Darstellung: Dunkel bleibt nach Reload', themeAfter === 'dark', `data-theme=${themeAfter}`);
+  await goTab('settings', `document.querySelector('[data-segmented="theme"]')`);
+  await evaluate(`document.querySelector('[data-segmented="theme"] [data-value="light"]').click(); true`);
+  const lightBg = await evaluate(`getComputedStyle(document.body).backgroundColor`);
+  check('Darstellung: Hell wirkt sofort', lightBg === 'rgb(242, 242, 247)', lightBg);
+  await evaluate(`document.querySelector('[data-segmented="theme"] [data-value="auto"]').click(); true`);
+  await sleep(500);
+
   // Library opens
-  await evaluate(`document.querySelector('[data-nav="library"]').click(); true`);
-  await waitEval(`document.querySelector('.lib-head')`);
+  await goTab('library', `document.querySelector('[data-screen="library"]')`);
   const count0 = await evaluate(`document.querySelector('[data-el="count"]').textContent`);
   check('Übungsliste öffnet mit Zählung', /\d+ von \d+ Übungen/.test(count0), count0);
 
@@ -181,8 +216,7 @@ try {
   // Persists across reload (IndexedDB)
   await send('Page.reload');
   await waitEval(`document.querySelector('#app main')`);
-  await evaluate(`document.querySelector('[data-nav="library"]').click(); true`);
-  await waitEval(`document.querySelector('.lib-head')`);
+  await goTab('library', `document.querySelector('[data-screen="library"]')`);
   const persisted = await waitEval(`[...document.querySelectorAll('.ex-name')].some(h=>h.textContent.includes('Smoke Test Übung'))`).then(() => true).catch(() => false);
   check('Eigene Übung bleibt nach Reload (IndexedDB)', persisted);
 
@@ -210,10 +244,10 @@ try {
     evaluate(`(()=>{const el=document.querySelector('${sel}'); el.value=${JSON.stringify(String(value))}; el.dispatchEvent(new Event('input',{bubbles:true})); return true;})()`);
 
   // Back to home, open the editor for a new circuit
-  await evaluate(`document.querySelector('[data-action="back"]').click(); true`);
-  await waitEval(`document.querySelector('[data-nav="new"]')`);
+  await goTab('home', `document.querySelector('[data-nav="new"]')`);
   await evaluate(`document.querySelector('[data-nav="new"]').click(); true`);
   await waitEval(`document.querySelector('[data-el="name"]')`);
+  check('Tab-Leiste im Editor verborgen', (await evaluate(`document.getElementById('tabbar').hidden`)) === true);
   await setVal('[data-el="name"]', 'Smoke Zirkel');
   for (const [k, v] of [['rounds', 1], ['workS', 2], ['restS', 0], ['roundRestS', 0], ['prepS', 0]]) await setVal(`[data-setting="${k}"]`, v);
 
@@ -248,23 +282,20 @@ try {
 
   // Back to overview, history now has an entry for this run
   await evaluate(`document.querySelector('[data-action="home"]').click(); true`);
-  await waitEval(`document.querySelector('[data-nav="history"]')`);
-  await evaluate(`document.querySelector('[data-nav="history"]').click(); true`);
-  await waitEval(`document.querySelector('.lib-head')`);
+  await waitEval(`document.querySelector('[data-nav="new"]')`);
+  await goTab('history', `document.querySelector('[data-screen="history"]')`);
   const histHit = await evaluate(`[...document.querySelectorAll('.hist-main h3')].some(h=>h.textContent.includes('Smoke Zirkel'))`);
   check('Verlauf enthält den Lauf', histHit);
 
   // Persists across reload
   await send('Page.reload');
   await waitEval(`document.querySelector('#app main')`);
-  await evaluate(`document.querySelector('[data-nav="history"]').click(); true`);
-  await waitEval(`document.querySelector('.lib-head')`);
+  await goTab('history', `document.querySelector('[data-screen="history"]')`);
   const histPersist = await waitEval(`[...document.querySelectorAll('.hist-main h3')].some(h=>h.textContent.includes('Smoke Zirkel'))`).then(() => true).catch(() => false);
   check('Verlauf bleibt nach Reload (IndexedDB)', histPersist);
 
   // Edit the template, delete it → gone from home
-  await evaluate(`document.querySelector('[data-action="back"]').click(); true`);
-  await waitEval(`document.querySelector('[data-card="edit"][data-kind="template"]')`);
+  await goTab('home', `document.querySelector('[data-card="edit"][data-kind="template"]')`);
   await evaluate(`document.querySelector('[data-card="edit"][data-kind="template"]').click(); true`);
   await waitEval(`document.querySelector('[data-action="delete"]')`);
   await evaluate(`document.querySelector('[data-action="delete"]').click(); true`);
@@ -272,6 +303,20 @@ try {
   await evaluate(`document.querySelector('[data-action="delete-confirm"]').click(); true`);
   const tmplGone = await waitEval(`document.querySelector('[data-nav="new"]') && ![...document.querySelectorAll('.circuit-head h3')].some(h=>h.textContent.includes('Smoke Zirkel'))`).then(() => true).catch(() => false);
   check('Vorlage gelöscht', tmplGone);
+
+  // ---- screen transition with motion on: push leaves exactly one screen behind, pop too ----
+  await setMotion(false);
+  await evaluate(`document.querySelector('[data-nav="new"]').click(); true`);
+  const during = await evaluate(`document.querySelectorAll('#app > .screen').length`);
+  await sleep(800);
+  const afterPush = await evaluate(`({ n: document.querySelectorAll('#app > .screen').length, editor: !!document.querySelector('[data-screen="editor"]'), focus: document.activeElement?.tagName })`);
+  await evaluate(`document.querySelector('[data-screen="editor"] [data-action="back"]').click(); true`);
+  await sleep(800);
+  const afterPop = await evaluate(`({ n: document.querySelectorAll('#app > .screen').length, home: !!document.querySelector('[data-nav="new"]'), tabbar: !document.getElementById('tabbar').hidden })`);
+  check('Bildschirmwechsel mit Animation: alter Bildschirm wird entfernt, Fokus auf Überschrift',
+    during === 2 && afterPush.n === 1 && afterPush.editor && afterPush.focus === 'H1' && afterPop.n === 1 && afterPop.home && afterPop.tabbar,
+    JSON.stringify({ during, afterPush, afterPop }));
+  await setMotion(true);
 
   // ---- service worker / offline ----
   await send('Network.enable');
@@ -318,16 +363,15 @@ try {
       createdAt: 1, updatedAt: 1, lastUsedAt: 9999999999999, sample: false,
     }],
   })));
-  await waitEval(`document.querySelector('[data-nav="data"]')`);
-  await evaluate(`document.querySelector('[data-nav="data"]').click(); true`);
-  await waitEval(`document.querySelector('[data-el="import"]')`);
+  await waitEval(`document.querySelector('[data-nav="new"]')`);
+  await goTab('settings', `document.querySelector('[data-el="import"]')`);
   await send('DOM.enable');
   const inputObjId = await evalHandle(`document.querySelector('[data-el="import"]')`);
   await send('DOM.setFileInputFiles', { objectId: inputObjId, files: [importPath] });
   await waitEval(`!document.querySelector('[data-el="status"]').hidden && document.querySelector('[data-el="status"]').textContent.includes('Importiert')`);
   const importStatus = await evaluate(`document.querySelector('[data-el="status"]').textContent`);
   check('Import per Datei meldet Erfolg', /Importiert/.test(importStatus), importStatus);
-  await evaluate(`document.querySelector('[data-action="back"]').click(); true`);
+  await goTab('home', `document.querySelector('[data-nav="new"]')`);
   const importShown = await waitEval(`[...document.querySelectorAll('.circuit-head h3')].some(h=>h.textContent.includes('Import Zirkel'))`).then(() => true).catch(() => false);
   check('Importierter Zirkel auf der Startseite', importShown);
 
@@ -335,8 +379,7 @@ try {
   const downloadDir = join(udd, 'downloads');
   mkdirSync(downloadDir, { recursive: true });
   await send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadDir });
-  await evaluate(`document.querySelector('[data-nav="data"]').click(); true`);
-  await waitEval(`document.querySelector('[data-action="export"]')`);
+  await goTab('settings', `document.querySelector('[data-action="export"]')`);
   await evaluate(`document.querySelector('[data-action="export"]').click(); true`);
   let exportFile = null;
   for (let i = 0; i < 50 && !exportFile; i++) {

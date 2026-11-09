@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createMemoryStore } from '../js/storage/memory.js';
-import { createDb, DEFAULT_SETTINGS } from '../js/storage/db.js';
+import { createDb, DEFAULT_SETTINGS, SETTINGS_VERSION, migrateSettings } from '../js/storage/db.js';
 
 // The contract every store implementation must satisfy. In node we run it against the in-memory
 // store; the same function can be pointed at the IndexedDB store from a browser.
@@ -158,4 +158,46 @@ test('Verlauf: hinzufügen vergibt id, auflisten, löschen, leeren', async () =>
   assert.equal((await db.listHistory()).length, 2);
   await db.clearHistory();
   assert.deepEqual(await db.listHistory(), []);
+});
+
+// ---- settings survive app updates (versioned, migrated, never reset) ----
+
+test('Update: Einstellungen aus Version 0.5.0 bleiben erhalten, nur theme wird auf "auto" umgestellt', async () => {
+  const store = createMemoryStore();
+  // exactly what 0.5.0 wrote: no settingsVersion, theme stored as 'dark' without any choice in the UI
+  await store.put('kv', {
+    soundMode: 'ambient', volume: 0.35, voice: false, voiceURI: null,
+    countdownBeeps: false, halfwayBeep: true, theme: 'dark', animations: true,
+  }, 'settings');
+  const loaded = await createDb(store).loadSettings();
+  assert.equal(loaded.soundMode, 'ambient');
+  assert.equal(loaded.volume, 0.35);
+  assert.equal(loaded.voice, false);
+  assert.equal(loaded.countdownBeeps, false);
+  assert.equal(loaded.halfwayBeep, true);
+  assert.equal(loaded.theme, 'auto');
+  assert.equal(loaded.settingsVersion, SETTINGS_VERSION);
+});
+
+test('Update: eine bewusst gewählte Darstellung (ab Version 2) wird nicht angefasst', async () => {
+  const db = createDb(createMemoryStore());
+  await db.saveSettings({ ...DEFAULT_SETTINGS, theme: 'dark' });
+  assert.equal((await db.loadSettings()).theme, 'dark');
+  await db.saveSettings({ ...DEFAULT_SETTINGS, theme: 'light' });
+  assert.equal((await db.loadSettings()).theme, 'light');
+});
+
+test('Update: unbekannter theme-Wert fällt auf "auto", ein künftiges Feld bekommt seinen Standard', () => {
+  assert.equal(migrateSettings({ settingsVersion: 2, theme: 'neon' }).theme, 'auto');
+  assert.deepEqual(migrateSettings(undefined), {});
+  assert.equal(migrateSettings({ volume: 0.2 }).volume, 0.2);
+});
+
+test('Import einer alten Sicherung (0.5.0) migriert die Einstellungen statt sie zu verfälschen', async () => {
+  const db = createDb(createMemoryStore());
+  await db.importData({ settings: { soundMode: 'ambient', volume: 0.6, theme: 'dark' } });
+  const loaded = await db.loadSettings();
+  assert.equal(loaded.soundMode, 'ambient');
+  assert.equal(loaded.volume, 0.6);
+  assert.equal(loaded.theme, 'auto');
 });

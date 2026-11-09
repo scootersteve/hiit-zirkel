@@ -5,7 +5,7 @@
 import { plannedDurationS } from '../core/plan.js';
 import { formatDuration } from '../core/format.js';
 import { isUniform, moveItem, removeAt, applyUniformTimes, setExerciseWorkS } from '../core/circuit.js';
-import { esc } from './dom.js';
+import { esc, icon, mount, once } from './dom.js';
 
 const SETTINGS_FIELDS = [
   ['rounds', 'Runden', 1],
@@ -17,8 +17,13 @@ const SETTINGS_FIELDS = [
   ['cooldownS', 'Cool-down (s)', 0],
 ];
 
-export function showEditor(root, { circuit, isExisting = false, onAddExercise, onRun, onSave, onDelete, onShare, onBack }) {
+export function showEditor(root, { circuit, isExisting = false, nav = 'push', onAddExercise, onRun, onSave, onDelete, onShare, onBack }) {
   if (circuit.uniformTime === undefined) circuit.uniformTime = isUniform(circuit);
+  const screen = mount(root, '', { nav });
+  // a second tap while saving, sharing or deleting is still running must not repeat it
+  const save = once(() => onSave(circuit));
+  const share = once(() => onShare(circuit));
+  const deleteCircuit = once(() => onDelete(circuit));
 
   function settingField([key, label, min]) {
     return `
@@ -37,19 +42,19 @@ export function showEditor(root, { circuit, isExisting = false, onAddExercise, o
         <span class="edit-ex-name">${esc(e.name)}${e.sides ? '<span class="ex-tag">L/R</span>' : ''}</span>
         ${time}
         <span class="edit-ex-ctrl">
-          <button class="icon-btn" data-move="up" data-index="${i}" ${i === 0 ? 'disabled' : ''} aria-label="nach oben">↑</button>
-          <button class="icon-btn" data-move="down" data-index="${i}" ${last ? 'disabled' : ''} aria-label="nach unten">↓</button>
-          <button class="icon-btn danger-text" data-remove="${i}" aria-label="entfernen">✕</button>
+          <button class="icon-btn" data-move="up" data-index="${i}" ${i === 0 ? 'disabled' : ''} aria-label="${esc(e.name)} nach oben">${icon('arrowUp')}</button>
+          <button class="icon-btn" data-move="down" data-index="${i}" ${last ? 'disabled' : ''} aria-label="${esc(e.name)} nach unten">${icon('arrowDown')}</button>
+          <button class="icon-btn danger-text" data-remove="${i}" aria-label="${esc(e.name)} entfernen">${icon('trash')}</button>
         </span>
       </li>`;
   }
 
   function render() {
     const has = circuit.exercises.length > 0;
-    root.innerHTML = `
-      <main class="page">
-        <header class="lib-head">
-          <button class="icon-btn" data-action="back" aria-label="Abbrechen">‹ Abbrechen</button>
+    screen.innerHTML = `
+      <main class="page has-navbar" data-screen="editor">
+        <header class="navbar">
+          <button class="nav-btn" data-action="back">${icon('chevronLeft')}Zurück</button>
           <h1>${isExisting ? 'Zirkel bearbeiten' : 'Neuer Zirkel'}</h1>
           <span></span>
         </header>
@@ -67,7 +72,7 @@ export function showEditor(root, { circuit, isExisting = false, onAddExercise, o
         <h2>Übungen</h2>
         ${has ? `<ol class="edit-ex-list">${circuit.exercises.map((e, i) => exerciseItem(e, i, i === circuit.exercises.length - 1)).join('')}</ol>`
               : '<p class="lib-empty">Noch keine Übung. Unten hinzufügen.</p>'}
-        <button class="btn ghost" data-action="add">+ Übung hinzufügen</button>
+        <button class="btn tinted" data-action="add">${icon('plus')}Übung hinzufügen</button>
 
         <label class="row edit-uniform">
           <span class="row-label">Jede Übung gleich lang<span class="row-hint">${circuit.uniformTime ? 'Belastung oben gilt für alle' : 'pro Übung einstellbar'}</span></span>
@@ -99,15 +104,15 @@ export function showEditor(root, { circuit, isExisting = false, onAddExercise, o
   }
 
   function updateDuration() {
-    root.querySelector('[data-el="duration"]').textContent = formatDuration(plannedDurationS(circuit.settings, circuit.exercises));
+    screen.querySelector('[data-el="duration"]').textContent = formatDuration(plannedDurationS(circuit.settings, circuit.exercises));
   }
 
   function wire() {
-    root.querySelector('[data-el="name"]').addEventListener('input', (e) => {
+    screen.querySelector('[data-el="name"]').addEventListener('input', (e) => {
       circuit.name = e.target.value;
     });
 
-    root.querySelectorAll('[data-setting]').forEach((input) =>
+    screen.querySelectorAll('[data-setting]').forEach((input) =>
       input.addEventListener('input', (e) => {
         const value = e.target.value === '' ? 0 : Number(e.target.value);
         if (Number.isFinite(value)) circuit.settings[e.target.dataset.setting] = value;
@@ -115,7 +120,7 @@ export function showEditor(root, { circuit, isExisting = false, onAddExercise, o
       }),
     );
 
-    root.querySelectorAll('[data-time]').forEach((input) =>
+    screen.querySelectorAll('[data-time]').forEach((input) =>
       input.addEventListener('input', (e) => {
         if (e.target.value === '') return; // wait until a number is typed
         circuit.exercises = setExerciseWorkS(circuit.exercises, Number(e.target.dataset.time), e.target.value);
@@ -123,7 +128,7 @@ export function showEditor(root, { circuit, isExisting = false, onAddExercise, o
       }),
     );
 
-    root.querySelector('[data-el="uniform"]').addEventListener('change', (e) => {
+    screen.querySelector('[data-el="uniform"]').addEventListener('change', (e) => {
       circuit.uniformTime = e.target.checked;
       circuit.exercises = applyUniformTimes(circuit.exercises, circuit.uniformTime, circuit.settings.workS);
       render();
@@ -131,7 +136,7 @@ export function showEditor(root, { circuit, isExisting = false, onAddExercise, o
 
     // Delegated to the fresh <main>, not the persistent #app, so it dies with this render
     // (and when the screen is left) instead of stacking.
-    root.querySelector('main').addEventListener('click', onClick);
+    screen.querySelector('main').addEventListener('click', onClick);
   }
 
   function onClick(event) {
@@ -141,11 +146,11 @@ export function showEditor(root, { circuit, isExisting = false, onAddExercise, o
     if (action === 'back') onBack();
     else if (action === 'add') onAddExercise();
     else if (action === 'start') onRun(circuit);
-    else if (action === 'save') onSave(circuit);
-    else if (action === 'share') onShare(circuit);
-    else if (action === 'delete') root.querySelector('[data-el="del-confirm"]').hidden = false;
-    else if (action === 'delete-cancel') root.querySelector('[data-el="del-confirm"]').hidden = true;
-    else if (action === 'delete-confirm') onDelete(circuit);
+    else if (action === 'save') save();
+    else if (action === 'share') share();
+    else if (action === 'delete') screen.querySelector('[data-el="del-confirm"]').hidden = false;
+    else if (action === 'delete-cancel') screen.querySelector('[data-el="del-confirm"]').hidden = true;
+    else if (action === 'delete-confirm') deleteCircuit();
     else if (move) {
       circuit.exercises = moveItem(circuit.exercises, Number(index), move === 'up' ? -1 : 1);
       render();
@@ -156,4 +161,7 @@ export function showEditor(root, { circuit, isExisting = false, onAddExercise, o
   }
 
   render();
+  const heading = screen.querySelector('h1');
+  heading.tabIndex = -1;
+  heading.focus({ preventScroll: true });
 }

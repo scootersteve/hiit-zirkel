@@ -2,7 +2,7 @@
 // rounds and whether it was finished or aborted. Clear-all behind a confirm.
 
 import { formatDuration } from '../core/format.js';
-import { esc } from './dom.js';
+import { esc, mount, once } from './dom.js';
 
 const dateFmt = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -27,19 +27,19 @@ function entryCard(h) {
     </article>`;
 }
 
-export async function showHistory(root, { db, onBack }) {
-  const entries = (await db.listHistory()).sort((a, b) => b.startedAt - a.startedAt);
+// `entries` is loaded by the caller, so the screen appears at once. onCleared reloads the tab.
+export function showHistory(root, { db, entries: loaded = [], nav = 'none', onCleared = () => {} }) {
+  const entries = [...loaded].sort((a, b) => b.startedAt - a.startedAt);
 
-  root.innerHTML = `
-    <main class="page">
-      <header class="lib-head">
-        <button class="icon-btn" data-action="back" aria-label="Zurück">‹ Zurück</button>
-        <h1>Verlauf</h1>
-        <span></span>
-      </header>
+  const screen = mount(root, `
+    <main class="page" data-screen="history">
+      <header class="large-title"><h1>Verlauf</h1></header>
       ${entries.length
-        ? entries.map(entryCard).join('') + '<button class="btn ghost" data-action="clear">Verlauf leeren</button>'
-        : '<p class="lib-empty">Noch keine Trainings aufgezeichnet.</p>'}
+        ? entries.map(entryCard).join('') + '<button class="btn ghost danger-text" data-action="clear">Verlauf leeren</button>'
+        : `<div class="card empty-card">
+             <h3>Noch kein Training</h3>
+             <p>Sobald du einen Zirkel startest, erscheint er hier mit Datum, Dauer und Runden.</p>
+           </div>`}
 
       <dialog class="confirm" data-el="dialog">
         <h2>Verlauf leeren?</h2>
@@ -47,20 +47,19 @@ export async function showHistory(root, { db, onBack }) {
         <button class="btn danger" data-action="clear-confirm">Ja, leeren</button>
         <button class="btn ghost" data-action="clear-cancel">Abbrechen</button>
       </dialog>
-    </main>`;
+    </main>`, { nav, tabs: true });
 
-  const dialog = root.querySelector('[data-el="dialog"]');
+  const dialog = screen.querySelector('[data-el="dialog"]');
+  const clear = once(async () => {
+    dialog.close();
+    await db.clearHistory();
+    onCleared();
+  });
 
-  root.querySelector('main').addEventListener('click', (event) => {
-    const btn = event.target.closest('button');
-    if (!btn) return;
-    const { action } = btn.dataset;
-    if (action === 'back') onBack();
-    else if (action === 'clear') dialog.showModal();
+  screen.querySelector('main').addEventListener('click', (event) => {
+    const action = event.target.closest('button')?.dataset.action;
+    if (action === 'clear') dialog.showModal();
     else if (action === 'clear-cancel') dialog.close();
-    else if (action === 'clear-confirm') {
-      dialog.close();
-      db.clearHistory().then(() => showHistory(root, { db, onBack }));
-    }
+    else if (action === 'clear-confirm') clear();
   });
 }

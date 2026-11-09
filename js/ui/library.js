@@ -12,7 +12,7 @@ import {
   updateCustomExercise,
   byName,
 } from '../core/library.js';
-import { esc } from './dom.js';
+import { esc, icon, mount, once } from './dom.js';
 
 const options = (map, selected) =>
   Object.entries(map)
@@ -34,7 +34,7 @@ function exerciseRow(e, pickMode) {
     ...e.secondaryMuscles.map((m) => `<span class="chip sm muted">${esc(MUSCLES[m] || m)}</span>`),
   ].join('');
   const action = pickMode
-    ? `<button class="btn primary ex-add" data-pick="${esc(e.id)}">+ Hinzufügen</button>`
+    ? `<button class="btn primary ex-add" data-pick="${esc(e.id)}">${icon('plus')}Hinzufügen</button>`
     : e.custom
       ? `<button class="icon-btn" data-edit="${esc(e.id)}" aria-label="${esc(e.name)} bearbeiten">Bearbeiten</button>`
       : '';
@@ -49,21 +49,27 @@ function exerciseRow(e, pickMode) {
     </article>`;
 }
 
-// pick(exercise): optional. When given, the screen is a picker for the circuit editor; each row
-// adds an exercise and "Fertig" (onBack) returns. Without it, the screen just manages exercises.
-export async function showLibrary(root, { db, onBack, pick = null }) {
+// pick(exercise): optional. When given, the screen is a picker pushed from the circuit editor;
+// each row adds an exercise and "Fertig" (onBack) returns. Without it, it is the tab "Übungen"
+// and manages the exercises. `custom` is loaded by the caller, so the screen appears at once.
+export function showLibrary(root, { db, custom: initialCustom = [], onBack = () => {}, pick = null, nav = 'none' }) {
   const pickMode = typeof pick === 'function';
-  let custom = await db.listCustomExercises();
+  let custom = initialCustom;
   const filter = { query: '', category: '', equipment: '' };
   let editing = null; // the custom exercise being edited, or null for a new one
 
-  root.innerHTML = `
-    <main class="page">
-      <header class="lib-head">
-        <button class="icon-btn" data-action="back" aria-label="${pickMode ? 'Fertig' : 'Zurück'}">${pickMode ? '‹ Fertig' : '‹ Zurück'}</button>
-        <h1>${pickMode ? 'Übung hinzufügen' : 'Übungen'}</h1>
-        <button class="btn primary lib-add" data-action="add">+ Eigene</button>
-      </header>
+  const addOwn = `<button class="btn tinted small" data-action="add">${icon('plus')}Eigene</button>`;
+  const head = pickMode
+    ? `<header class="navbar">
+         <span></span>
+         <h1>Übung hinzufügen</h1>
+         <button class="nav-btn end strong" data-action="back">Fertig</button>
+       </header>`
+    : `<header class="large-title title-row"><h1>Übungen</h1>${addOwn}</header>`;
+
+  const screen = mount(root, `
+    <main class="page${pickMode ? ' has-navbar' : ''}" data-screen="${pickMode ? 'picker' : 'library'}">
+      ${head}
 
       <div class="lib-filters card">
         <input type="search" class="lib-search" data-field="search" placeholder="Übung suchen" aria-label="Übung suchen" enterkeyhint="search">
@@ -73,15 +79,18 @@ export async function showLibrary(root, { db, onBack, pick = null }) {
         </div>
       </div>
 
-      <p class="lib-count" data-el="count"></p>
+      <div class="lib-count-row">
+        <p class="lib-count" data-el="count"></p>
+        ${pickMode ? addOwn : ''}
+      </div>
       <div data-el="list"></div>
 
       <dialog class="confirm lib-dialog" data-el="dialog"></dialog>
-    </main>`;
+    </main>`, { nav, tabs: !pickMode });
 
-  const listEl = root.querySelector('[data-el="list"]');
-  const countEl = root.querySelector('[data-el="count"]');
-  const dialog = root.querySelector('[data-el="dialog"]');
+  const listEl = screen.querySelector('[data-el="list"]');
+  const countEl = screen.querySelector('[data-el="count"]');
+  const dialog = screen.querySelector('[data-el="dialog"]');
 
   function renderList() {
     const all = combineExercises(custom);
@@ -93,14 +102,15 @@ export async function showLibrary(root, { db, onBack, pick = null }) {
   }
 
   function pickExercise(id, btn) {
+    if (btn.classList.contains('added')) return; // a double tap must not add the exercise twice
     const exercise = combineExercises(custom).find((e) => e.id === id);
     if (!exercise) return;
     pick(exercise);
-    btn.textContent = '✓ Hinzugefügt';
+    btn.innerHTML = `${icon('check')}Hinzugefügt`;
     btn.classList.add('added');
     setTimeout(() => {
-      if (root.contains(btn)) {
-        btn.textContent = '+ Hinzufügen';
+      if (screen.contains(btn)) {
+        btn.innerHTML = `${icon('plus')}Hinzufügen`;
         btn.classList.remove('added');
       }
     }, 1200);
@@ -166,7 +176,7 @@ export async function showLibrary(root, { db, onBack, pick = null }) {
     }
   }
 
-  async function save() {
+  const save = once(async () => {
     const read = (f) => dialog.querySelector(`[data-field="${f}"]`);
     const picked = (group) =>
       [...dialog.querySelectorAll(`[data-muscle^="${group}:"][aria-pressed="true"]`)].map((b) => b.dataset.muscle.split(':')[1]);
@@ -191,30 +201,30 @@ export async function showLibrary(root, { db, onBack, pick = null }) {
       errorEl.textContent = err.message || 'Konnte nicht gespeichert werden.';
       errorEl.hidden = false;
     }
-  }
+  });
 
-  async function doDelete() {
+  const doDelete = once(async () => {
     if (!editing) return;
     await db.removeCustomExercise(editing.id);
     custom = await db.listCustomExercises();
     dialog.close();
     renderList();
-  }
+  });
 
   const toggleDeleteConfirm = (show) => {
     dialog.querySelector('[data-el="actions"]').hidden = show;
     dialog.querySelector('[data-el="del-confirm"]').hidden = !show;
   };
 
-  root.querySelector('.lib-search').addEventListener('input', (e) => {
+  screen.querySelector('.lib-search').addEventListener('input', (e) => {
     filter.query = e.target.value;
     renderList();
   });
-  root.querySelector('[data-field="category"]').addEventListener('change', (e) => {
+  screen.querySelector('[data-field="category"]').addEventListener('change', (e) => {
     filter.category = e.target.value;
     renderList();
   });
-  root.querySelector('[data-field="equipment"]').addEventListener('change', (e) => {
+  screen.querySelector('[data-field="equipment"]').addEventListener('change', (e) => {
     filter.equipment = e.target.value;
     renderList();
   });
@@ -226,7 +236,7 @@ export async function showLibrary(root, { db, onBack, pick = null }) {
   dialog.addEventListener('close', () => toggleDeleteConfirm(false));
 
   // Delegated to this screen's <main> (dies when the screen is left) rather than the persistent #app.
-  root.querySelector('main').addEventListener('click', (event) => {
+  screen.querySelector('main').addEventListener('click', (event) => {
     const btn = event.target.closest('button');
     if (!btn) return;
     const { action, edit, muscle } = btn.dataset;

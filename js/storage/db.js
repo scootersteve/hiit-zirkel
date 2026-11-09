@@ -7,16 +7,43 @@ import { makeId } from '../core/id.js';
 
 // The app/sound/theme settings (kv: "settings"). Separate from the per-circuit timer settings
 // in js/core/plan.js. Loading always merges onto these, so a new field gets its default.
+export const SETTINGS_VERSION = 2;
 export const DEFAULT_SETTINGS = Object.freeze({
+  settingsVersion: SETTINGS_VERSION,
   soundMode: 'playback', // "Immer hörbar"; "ambient" = Musik-Modus
   volume: 0.8,
   voice: true,
   voiceURI: null,
   countdownBeeps: true,
   halfwayBeep: false,
-  theme: 'dark',
+  theme: 'auto', // "auto" follows the device, "light" / "dark" force a scheme
   animations: true,
 });
+
+const THEMES = ['auto', 'light', 'dark'];
+
+/**
+ * Brings settings saved by an older app version up to date WITHOUT dropping what the user chose.
+ * An update must never reset settings; a changed meaning gets a step here instead.
+ *   v1 → v2: "theme" was stored as 'dark' although the app offered no choice yet. It becomes
+ *            'auto' (follow the device); everything else is kept as it was.
+ */
+export function migrateSettings(saved) {
+  if (!saved || typeof saved !== 'object') return {};
+  const out = { ...saved };
+  const version = Number(out.settingsVersion) || 1;
+  if (version < 2) out.theme = 'auto';
+  if (!THEMES.includes(out.theme)) out.theme = 'auto';
+  out.settingsVersion = SETTINGS_VERSION;
+  return out;
+}
+
+// Known keys only, so stray fields never accumulate; missing ones fall back to the default.
+function cleanSettings(settings) {
+  const clean = {};
+  for (const key of Object.keys(DEFAULT_SETTINGS)) clean[key] = settings[key] ?? DEFAULT_SETTINGS[key];
+  return clean;
+}
 
 export function createDb(store) {
   return {
@@ -25,12 +52,10 @@ export function createDb(store) {
 
     async loadSettings() {
       const saved = await store.get('kv', 'settings');
-      return { ...DEFAULT_SETTINGS, ...(saved || {}) };
+      return { ...DEFAULT_SETTINGS, ...migrateSettings(saved) };
     },
-    // Keeps only known keys so stray fields never accumulate; missing ones fall back to default.
     async saveSettings(settings) {
-      const clean = {};
-      for (const key of Object.keys(DEFAULT_SETTINGS)) clean[key] = settings[key] ?? DEFAULT_SETTINGS[key];
+      const clean = cleanSettings({ ...settings, settingsVersion: SETTINGS_VERSION });
       await store.put('kv', clean, 'settings');
       return clean;
     },
@@ -112,9 +137,8 @@ export function createDb(store) {
         await store.put('kv', usage, 'exerciseUsage');
       }
       if (data.settings && Object.keys(data.settings).length) {
-        const clean = {};
-        for (const key of Object.keys(DEFAULT_SETTINGS)) clean[key] = data.settings[key] ?? DEFAULT_SETTINGS[key];
-        await store.put('kv', clean, 'settings');
+        // a backup may come from an older app version: migrate it like stored settings
+        await store.put('kv', cleanSettings(migrateSettings(data.settings)), 'settings');
       }
       return counts;
     },

@@ -10,7 +10,7 @@ import { formatElapsed, formatRemaining } from '../core/format.js';
 import * as audio from '../platform/audio.js';
 import * as speech from '../platform/speech.js';
 import * as wake from '../platform/wakelock.js';
-import { setText, icon } from './dom.js';
+import { setText, icon, mount } from './dom.js';
 
 const START_SIGNAL = {
   [PHASE.PREP]: null, // prep starts with the Start tap itself
@@ -63,8 +63,7 @@ export function showRun(root, { circuit, settings, onEnd }) {
   wake.keepAwake();
 
   document.body.classList.add('running');
-  root.innerHTML = TEMPLATE;
-  const screen = root.querySelector('.run');
+  const screen = mount(root, TEMPLATE, { nav: 'fade' }).querySelector('.run');
   const els = Object.fromEntries([...screen.querySelectorAll('[data-el]')].map((el) => [el.dataset.el, el]));
   const toggleButton = screen.querySelector('[data-action="toggle"]');
   const audioHint = screen.querySelector('[data-action="audio"]');
