@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildPlan, PHASE } from '../js/core/plan.js';
-import { createTimer, settle, start, pause, resume, skip, back, addTime, abort, view, STATUS } from '../js/core/timer.js';
+import { createTimer, settle, start, pause, resume, skip, back, addTime, abort, view, msUntilNextChange, STATUS } from '../js/core/timer.js';
+import { cuesBetween } from '../js/core/cues.js';
 
 const ex = (n) => Array.from({ length: n }, (_, i) => ({ id: `e${i + 1}`, name: `Übung ${i + 1}`, sides: false }));
 const ACCEPTANCE = { rounds: 3, workS: 40, restS: 20, roundRestS: 90, prepS: 10, warmupS: 0, cooldownS: 0 };
@@ -180,4 +181,48 @@ test('Runden zählen erst, wenn die letzte Belastung der Runde vorbei ist', () =
 
 test('Plan ohne Phasen wird abgelehnt', () => {
   assert.throws(() => createTimer(buildPlan({}, [])));
+});
+
+test('msUntilNextChange: nächste ganze Sekunde der Restzeit', () => {
+  const t = started();
+  assert.equal(msUntilNextChange(view(t, T0)), 1000); // exactly on a boundary: next one is 1 s away
+  assert.equal(msUntilNextChange(view(t, T0 + 250)), 750);
+  assert.equal(msUntilNextChange(view(t, T0 + 9_999)), 1); // phase end
+});
+
+test('msUntilNextChange: verstrichene Zeit läuft nach Überspringen versetzt, beide Grenzen zählen', () => {
+  let t = started();
+  t = skip(t, T0 + 4_300); // elapsed 4.3 s, new phase starts at 40.0 s remaining
+  const v = view(t, T0 + 4_400); // remaining 39.9 s → 900 ms; elapsed 4.4 s → 600 ms
+  assert.equal(msUntilNextChange(v), 600);
+});
+
+test('msUntilNextChange: Halbzeit einer Belastung liegt nicht immer auf einer ganzen Sekunde', () => {
+  const t = start(createTimer(buildPlan({ rounds: 1, workS: 15, restS: 0, roundRestS: 0, prepS: 0 }, ex(1))), T0);
+  assert.equal(msUntilNextChange(view(t, T0 + 7_200)), 300); // half = 7.5 s
+  assert.equal(msUntilNextChange(view(t, T0 + 7_600)), 400); // past half: next whole second
+});
+
+test('Ticks nur an den gemeldeten Grenzen: gleiche Signale wie bei Dauer-Abfrage', () => {
+  // Drive the timer the way the UI does (sleep until the next change) and compare the cues
+  // with a 50 ms polling loop over the same workout.
+  const settings = { rounds: 2, workS: 15, restS: 7, roundRestS: 9, prepS: 5 };
+  const cuesOf = (stepFn) => {
+    let t = start(createTimer(buildPlan(settings, ex(3))), T0);
+    let prev = view(t, T0);
+    const out = [];
+    let now = T0;
+    while (t.status === STATUS.RUNNING) {
+      now += stepFn(prev);
+      t = settle(t, now);
+      const next = view(t, now);
+      for (const c of cuesBetween(prev, next)) out.push(`${c.type}${c.n ?? ''}@${Math.round((now - T0) / 100) / 10}`);
+      prev = next;
+    }
+    return out;
+  };
+  const polled = cuesOf(() => 50);
+  const slept = cuesOf((v) => msUntilNextChange(v) + 4);
+  assert.deepEqual(slept, polled);
+  assert.ok(polled.length > 30);
 });

@@ -147,6 +147,23 @@ function roundsCompleted(state) {
   return count;
 }
 
+/**
+ * Milliseconds until the display or a cue can change next: the next whole second of the phase
+ * countdown (also where the 3-2-1 beeps and the phase end sit), the next whole second of the
+ * elapsed time, or the halfway point of a work phase (side switch). The UI sleeps in between
+ * instead of redrawing every frame. Takes a snapshot from view().
+ */
+export function msUntilNextChange(v) {
+  const untilCountdown = v.phaseRemainingMs % 1000 || 1000;
+  const untilElapsed = 1000 - (v.activeMs % 1000);
+  let wait = Math.min(untilCountdown, untilElapsed);
+  if (v.phase.type === PHASE.WORK) {
+    const half = v.phase.durationMs / 2;
+    if (v.phaseElapsedMs < half) wait = Math.min(wait, half - v.phaseElapsedMs);
+  }
+  return wait;
+}
+
 /** Read-only snapshot for the display and the sound layer. */
 export function view(state, now) {
   const s = settle(state, now);

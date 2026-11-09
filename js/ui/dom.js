@@ -3,7 +3,7 @@
 const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = (value) => String(value).replace(/[&<>"']/g, (c) => ESCAPES[c]);
 
-/** Sets textContent only if it changed (the run screen redraws up to 60 times per second). */
+/** Sets textContent only if it changed, so an unchanged value costs no style or layout work. */
 export function setText(el, text) {
   if (el.textContent !== text) el.textContent = text;
 }

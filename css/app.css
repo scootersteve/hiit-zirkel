@@ -177,7 +177,7 @@ body.running { overflow: hidden; }
 .run-pos { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .run-progress { height: 6px; margin-top: 8px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); overflow: hidden; }
-.run-progress-bar { height: 100%; width: 0; background: #fff; }
+.run-progress-bar { height: 100%; background: #fff; transform: scaleX(0); transform-origin: left center; will-change: transform; }
 
 .run-main {
   flex: 1;

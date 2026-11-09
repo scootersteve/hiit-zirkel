@@ -2,7 +2,7 @@
 // All timing logic lives in core/timer.js; this file only reads it and forwards taps.
 
 import { buildPlan, plannedDurationS, PHASE } from '../core/plan.js';
-import { createTimer, start, settle, view, pause, resume, skip, back, addTime, abort, STATUS } from '../core/timer.js';
+import { createTimer, start, settle, view, msUntilNextChange, pause, resume, skip, back, addTime, abort, STATUS } from '../core/timer.js';
 import { cuesBetween, canAnnounce, CUE } from '../core/cues.js';
 import { phaseStartText, SIDE_SWITCH_TEXT, FINISHED_TEXT } from '../core/announcements.js';
 import { PHASE_LABEL, displayPosition, exerciseLine } from '../core/display.js';
@@ -71,9 +71,10 @@ export function showRun(root, { circuit, settings, onEnd }) {
 
   let state = start(createTimer(plan), Date.now());
   let prev = view(state, Date.now());
-  let rafId = 0;
+  let timerId = 0;
   let ended = false;
   let lastToggleLabel = '';
+  let lastTap = { action: '', at: 0 };
 
   // ---------- sound ----------
 
@@ -125,7 +126,6 @@ export function showRun(root, { circuit, settings, onEnd }) {
     setText(els.elapsed, formatElapsed(v.activeMs));
     const pos = displayPosition(v.phase, state.plan);
     setText(els.pos, `Runde ${pos.round}/${pos.rounds} · Übung ${pos.number}/${pos.exerciseCount}`);
-    els.bar.style.width = `${(v.progress * 100).toFixed(1)}%`;
 
     setText(els.phase, PHASE_LABEL[v.phase.type]);
     els.paused.hidden = !paused;
@@ -147,22 +147,49 @@ export function showRun(root, { circuit, settings, onEnd }) {
     }
   }
 
-  // ---------- loop ----------
+  // The bar runs on the compositor: each tick it gets the position it should have reached by
+  // the next tick and a linear transition of exactly that length. `jump` (tap, pause, return
+  // from the background) puts it at the current position first, without animating.
+  function drawBar(v, waitMs, jump) {
+    const at = (ms) => `scaleX(${Math.min(1, v.totalMs ? ms / v.totalMs : 0).toFixed(5)})`;
+    if (jump) {
+      els.bar.style.transition = 'none';
+      els.bar.style.transform = at(v.positionMs);
+      void els.bar.offsetWidth; // commit the jump before the next transition starts
+    }
+    if (waitMs > 0) {
+      els.bar.style.transition = `transform ${waitMs}ms linear`;
+      els.bar.style.transform = at(v.positionMs + waitMs);
+    }
+  }
 
-  function frame() {
-    rafId = 0;
+  // ---------- loop ----------
+  // No per-frame redraw: between two changes nothing on screen differs except the bar, so the
+  // loop sleeps until the next whole second (or halfway point) and wakes up exactly there.
+  // Time still comes from timestamps only; a late wake-up shows the correct time, just later.
+
+  function tick() {
+    timerId = 0;
     const now = Date.now();
     state = settle(state, now);
     const v = view(state, now);
+    const gap = v.now - prev.now;
     for (const cue of cuesBetween(prev, v)) handleCue(cue, v);
     prev = v;
     draw(v);
     if (v.status === STATUS.FINISHED) return finish();
-    if (v.status === STATUS.RUNNING) schedule();
+    schedule(v, gap > 1500);
   }
 
-  function schedule() {
-    if (!rafId && !ended) rafId = requestAnimationFrame(frame);
+  function schedule(v, jump = true) {
+    clearTimeout(timerId);
+    timerId = 0;
+    if (ended) return;
+    const running = v.status === STATUS.RUNNING && document.visibilityState === 'visible';
+    const wait = running ? msUntilNextChange(v) : 0;
+    drawBar(v, wait, jump);
+    // +4 ms: a timer that fires a hair early would otherwise miss the boundary and spin.
+    if (running) timerId = setTimeout(tick, wait + 4);
   }
 
   // ---------- controls ----------
@@ -182,12 +209,22 @@ export function showRun(root, { circuit, settings, onEnd }) {
     const resumedAtStart = fn === resume && v.phaseElapsedMs === 0;
     if (v.status === STATUS.RUNNING && (restarted || resumedAtStart)) phaseStarted(v);
     if (v.status === STATUS.PAUSED) speech.cancel();
-    schedule();
+    schedule(v);
+  }
+
+  // A second tap on the same control within 350 ms is treated as an accident (wet fingers):
+  // it would pause and resume at once, or skip two phases. "+10 s" may be tapped repeatedly.
+  const GUARDED = new Set(['toggle', 'back', 'skip', 'abort-confirm']);
+  function isAccidentalRepeat(action) {
+    const now = Date.now();
+    const repeat = GUARDED.has(action) && lastTap.action === action && now - lastTap.at < 350;
+    lastTap = { action, at: now };
+    return repeat;
   }
 
   screen.addEventListener('click', (event) => {
     const action = event.target.closest('[data-action]')?.dataset.action;
-    if (!action || ended) return;
+    if (!action || ended || isAccidentalRepeat(action)) return;
     if (action === 'toggle') act(state.status === STATUS.PAUSED ? resume : pause);
     else if (action === 'back') act(back);
     else if (action === 'skip') act(skip);
@@ -208,8 +245,9 @@ export function showRun(root, { circuit, settings, onEnd }) {
   // ---------- interruptions: app switch, call, Siri ----------
 
   async function onVisibility() {
-    if (document.visibilityState !== 'visible' || ended) return;
-    schedule(); // the display jumps to the correct time immediately, missed cues are not replayed
+    if (ended) return;
+    if (document.visibilityState !== 'visible') return void clearTimeout(timerId); // no sounds from the background
+    tick(); // the display jumps to the correct time immediately, missed cues are not replayed
     const ok = await audio.tryResume();
     if (!ended) audioHint.hidden = ok;
   }
@@ -225,7 +263,7 @@ export function showRun(root, { circuit, settings, onEnd }) {
   function finish() {
     if (ended) return;
     ended = true;
-    if (rafId) cancelAnimationFrame(rafId);
+    clearTimeout(timerId);
     document.removeEventListener('visibilitychange', onVisibility);
     offAudioState();
     wake.allowSleep();
@@ -246,6 +284,6 @@ export function showRun(root, { circuit, settings, onEnd }) {
   // first phase: tone unless it is the prep countdown
   draw(prev);
   phaseStarted(prev);
-  schedule();
+  schedule(prev);
 }
 
