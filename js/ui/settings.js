@@ -1,5 +1,5 @@
-// Settings (tab "Einstellungen"): appearance, sound, a preview of the signals, and the backup
-// (download everything as a JSON file / merge a backup back in). Media such as a background
+// Settings (tab "Einstellungen"): appearance, sound, a preview of the signals, the backup
+// (download everything as a JSON file / merge a backup back in), licences and sources. Media such as a background
 // image or own sounds is device-only and never part of a backup.
 
 import { buildBackup, parseBackup } from '../core/transfer.js';
@@ -7,7 +7,9 @@ import { VERSION } from '../version.js';
 import * as audio from '../platform/audio.js';
 import * as speech from '../platform/speech.js';
 import { applyTheme } from '../platform/theme.js';
-import { esc, mount, once } from './dom.js';
+import { EXERCISES } from '../data/exercises.js';
+import { BODY_GRAPHIC } from '../data/licenses.js';
+import { esc, icon, mount, once } from './dom.js';
 
 const THEME_OPTIONS = [['auto', 'Automatisch'], ['light', 'Hell'], ['dark', 'Dunkel']];
 const SOUND_OPTIONS = [['playback', 'Immer hörbar'], ['ambient', 'Musik-Modus']];
@@ -56,6 +58,48 @@ function download(filename, text) {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+// where the muscle assignment of the built-in exercises comes from (see js/data/exercises.js)
+const fromDb = EXERCISES.filter((e) => e.ref).length;
+const adjusted = EXERCISES.filter((e) => e.ref?.[1]).length;
+
+/** Sheet with a licence text, as tall as its content; closed by "Fertig", Escape or a tap outside. */
+function licenseSheet({ name, url, license }) {
+  const dialog = document.createElement('dialog');
+  dialog.className = 'form-sheet fit';
+  dialog.innerHTML = `
+    <div class="form">
+      <header class="form-bar">
+        <span></span>
+        <h2>Lizenz</h2>
+        <button type="button" class="nav-btn end strong" data-action="close">Fertig</button>
+      </header>
+      <div class="form-body">
+        <p class="license-source">${esc(name)}<br>${esc(url)}</p>
+        <p class="license-text">${esc(license)}</p>
+      </div>
+    </div>`;
+  document.body.appendChild(dialog);
+  let closing = false;
+  const close = () => {
+    if (closing) return;
+    closing = true;
+    dialog.classList.add('closing');
+    setTimeout(() => {
+      dialog.close();
+      dialog.remove();
+    }, 200);
+  };
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog || event.target.closest('[data-action="close"]')) close();
+  });
+  dialog.addEventListener('cancel', (event) => {
+    event.preventDefault();
+    close();
+  });
+  dialog.showModal();
+  dialog.querySelector('[data-action="close"]').focus({ preventScroll: true });
+}
+
 export function showSettings(root, { db, settings, nav = 'none', onSettingsChange = () => {} }) {
   const screen = mount(root, `
     <main class="page">
@@ -95,6 +139,20 @@ export function showSettings(root, { db, settings, nav = 'none', onSettingsChang
       </div>
       <p class="group-foot">Eigene Übungen, Zirkel, Verlauf und Einstellungen als Datei. Beim Importieren bleibt Vorhandenes erhalten, gleiche Einträge werden überschrieben.</p>
       <p class="group-foot" data-el="status" role="status" hidden></p>
+
+      <h2 class="group-title">Lizenzen und Quellen</h2>
+      <div class="group" data-el="licenses">
+        <button class="cell" data-action="body-license">
+          <span class="cell-label">Körpergrafik<span class="cell-hint">Zeichnung der Figur aus react-native-body-highlighter, © 2022 ELABBASSI Hicham, MIT-Lizenz. Lizenztext ansehen.</span></span>
+          <span class="ex-chevron">${icon('chevronRight')}</span>
+        </button>
+        <div class="cell">
+          <span class="cell-label">Muskelzuordnung der Übungen<span class="cell-hint">Bei ${fromDb} von ${EXERCISES.length} Übungen aus free-exercise-db (gemeinfrei), ${adjusted} davon angepasst. Die übrigen sind eigene Angaben.</span></span>
+        </div>
+        <div class="cell">
+          <span class="cell-label">Diese App<span class="cell-hint">Eigener Code unter MIT-Lizenz, Quelltext auf GitHub: scootersteve/hiit-zirkel.</span></span>
+        </div>
+      </div>
 
       <p class="app-version">Zirkel Dojo ${esc(VERSION)}</p>
     </main>`, { nav, tabs: true });
@@ -192,6 +250,8 @@ export function showSettings(root, { db, settings, nav = 'none', onSettingsChang
       audio.play(target.dataset.signal);
     } else if (target.dataset.action === 'export') {
       exportBackup();
+    } else if (target.dataset.action === 'body-license') {
+      if (!document.querySelector('dialog.form-sheet[open]')) licenseSheet(BODY_GRAPHIC); // double tap opens one
     }
   });
 

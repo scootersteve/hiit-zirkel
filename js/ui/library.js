@@ -178,6 +178,8 @@ export function showLibrary(root, { db, custom: initialCustom = [], usage = {}, 
             </label>
           </div>
 
+          <div class="group group-gap"><div class="ex-detail-fig form-fig" data-el="fig"></div></div>
+
           <h3 class="group-title">Hauptmuskeln</h3>
           <div class="chip-grid">${muscleChips('primary', primary)}</div>
           <h3 class="group-title">Nebenmuskeln</h3>
@@ -195,6 +197,18 @@ export function showLibrary(root, { db, custom: initialCustom = [], usage = {}, 
     dialog.showModal();
     if (!exercise) dialog.querySelector('[data-field="name"]').focus();
     updateDuplicateWarning();
+    updateFormFigure();
+  }
+
+  const pickedMuscles = (group) =>
+    [...dialog.querySelectorAll(`[data-muscle^="${group}:"][aria-pressed="true"]`)].map((b) => b.dataset.muscle.split(':')[1]);
+
+  // The figure in the form shows what the chips below it select, at once.
+  function updateFormFigure() {
+    const primaryMuscles = pickedMuscles('primary');
+    const secondaryMuscles = pickedMuscles('secondary');
+    const label = `Körpergrafik. Hauptmuskeln: ${muscleNames(primaryMuscles) || 'keine'}. Nebenmuskeln: ${muscleNames(secondaryMuscles) || 'keine'}.`;
+    dialog.querySelector('[data-el="fig"]').innerHTML = bodyFigure(exerciseLevels({ primaryMuscles, secondaryMuscles }), label);
   }
 
   // Read-only sheet for a built-in exercise: the figure, then the same facts as text.
@@ -213,8 +227,8 @@ export function showLibrary(root, { db, custom: initialCustom = [], usage = {}, 
         <div class="form-body">
           <div class="group">
             <div class="ex-detail-fig">${bodyFigure(exerciseLevels(e), label)}</div>
-            <div class="cell muscle-cell"><span class="swatch" data-l="${LEVEL_MAIN}"></span><span class="cell-label">Hauptmuskeln</span><span class="cell-value">${esc(main || 'keine')}</span></div>
-            <div class="cell muscle-cell"><span class="swatch" data-l="${LEVEL_SECONDARY}"></span><span class="cell-label">Nebenmuskeln</span><span class="cell-value">${esc(secondary || 'keine')}</span></div>
+            <div class="cell muscle-cell"><span class="swatch" data-l="${LEVEL_MAIN}"></span><span class="cell-label"><span class="muscle-kind">Hauptmuskeln</span>${esc(main || 'keine')}</span></div>
+            <div class="cell muscle-cell"><span class="swatch" data-l="${LEVEL_SECONDARY}"></span><span class="cell-label"><span class="muscle-kind">Nebenmuskeln</span>${esc(secondary || 'keine')}</span></div>
           </div>
           <div class="group group-gap">
             <div class="cell"><span class="cell-label">Kategorie</span><span class="cell-value">${esc(CATEGORIES[e.category])}</span></div>
@@ -248,15 +262,13 @@ export function showLibrary(root, { db, custom: initialCustom = [], usage = {}, 
   // a second tap on "Sichern" while saving must not create the exercise twice
   const save = once(async () => {
     const read = (f) => dialog.querySelector(`[data-field="${f}"]`);
-    const picked = (group) =>
-      [...dialog.querySelectorAll(`[data-muscle^="${group}:"][aria-pressed="true"]`)].map((b) => b.dataset.muscle.split(':')[1]);
     const input = {
       name: read('name').value,
       category: read('category').value,
       equipment: read('equipment').value,
       sides: read('sides').checked,
-      primaryMuscles: picked('primary'),
-      secondaryMuscles: picked('secondary'),
+      primaryMuscles: pickedMuscles('primary'),
+      secondaryMuscles: pickedMuscles('secondary'),
     };
     try {
       const exercise = editing
@@ -319,7 +331,10 @@ export function showLibrary(root, { db, custom: initialCustom = [], usage = {}, 
     else if (pickId) pickExercise(pickId, btn);
     else if (edit) openDialog(custom.find((c) => c.id === edit));
     else if (info) openDetail(combineExercises(custom).find((e) => e.id === info));
-    else if (muscle) btn.setAttribute('aria-pressed', btn.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+    else if (muscle) {
+      btn.setAttribute('aria-pressed', btn.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+      updateFormFigure();
+    }
     else if (action === 'cancel') closeDialog();
     else if (action === 'delete') askDelete();
   });

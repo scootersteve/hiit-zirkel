@@ -180,6 +180,16 @@ try {
   await evaluate(`document.querySelector('[data-segmented="theme"] [data-value="auto"]').click(); true`);
   await sleep(500);
 
+  // Licences and sources: the notice for the body graphic is in the app, with the full text
+  const lic = await evaluate(`document.querySelector('[data-el="licenses"]')?.textContent || ''`);
+  await evaluate(`document.querySelector('[data-action="body-license"]').click(); true`);
+  await waitEval(`document.querySelector('dialog.form-sheet[open] .license-text')`);
+  const licText = await evaluate(`document.querySelector('dialog.form-sheet[open] .license-text').textContent`);
+  check('Einstellungen: Lizenzen und Quellen mit MIT-Text der Körpergrafik',
+    lic.includes('react-native-body-highlighter') && lic.includes('free-exercise-db') && licText.includes('MIT License') && licText.includes('ELABBASSI Hicham'));
+  await evaluate(`document.querySelector('dialog.form-sheet[open] [data-action="close"]').click(); true`);
+  await waitEval(`!document.querySelector('dialog.form-sheet')`);
+
   // Library opens
   await goTab('library', `document.querySelector('[data-screen="library"]')`);
   const count0 = await evaluate(`document.querySelector('[data-el="count"]').textContent`);
@@ -192,6 +202,21 @@ try {
   check('Suche ist umlaut-unempfindlich (klimmzuge → Klimmzüge)', filtered.some((t) => t.includes('Klimmzüge')), `${filtered.length} Treffer`);
   await evaluate(`(()=>{const s=document.querySelector('.lib-search'); s.value=''; s.dispatchEvent(new Event('input',{bubbles:true})); return true;})()`);
 
+  // Body graphic: a built-in exercise opens a sheet, main muscle strong, secondary light, rest neutral
+  await evaluate(`document.querySelector('[data-info="pushups"]').click(); true`);
+  await waitEval(`document.querySelector('[data-el="dialog"]').open && document.querySelector('[data-el="dialog"] .body-fig')`);
+  const sheet = await evaluate(`(()=>{
+    const d=document.querySelector('[data-el="dialog"]');
+    const fill=(l)=>{const p=d.querySelector('.bp[data-l="'+l+'"]'); return p ? getComputedStyle(p).fill : null;};
+    return { sides: d.querySelectorAll('.body-side').length, main: fill(3), secondary: fill(1), rest: fill(0),
+      text: d.querySelector('.form-body').textContent.replace(/\\s+/g,' '), label: d.querySelector('.body-fig').getAttribute('aria-label') };})()`);
+  check('Muskelgrafik pro Übung: vorne und hinten, Haupt/Neben/Rest in drei Farben, Text dazu',
+    sheet.sides === 2 && sheet.main && sheet.secondary && sheet.rest && new Set([sheet.main, sheet.secondary, sheet.rest]).size === 3
+      && sheet.text.includes('Hauptmuskeln') && sheet.text.includes('Brust') && sheet.text.includes('Trizeps') && sheet.label.includes('Brust'),
+    JSON.stringify({ sides: sheet.sides, main: sheet.main, secondary: sheet.secondary, rest: sheet.rest }));
+  await evaluate(`document.querySelector('[data-el="dialog"] [data-action="cancel"]').click(); true`);
+  await waitEval(`!document.querySelector('[data-el="dialog"]').open`);
+
   // Create a custom exercise (dialog-scoped fields)
   await evaluate(`document.querySelector('[data-action="add"]').click(); true`);
   await waitEval(`document.querySelector('[data-el="dialog"]').open`);
@@ -202,6 +227,10 @@ try {
     d.querySelector('[data-muscle="primary:abs"]').click();
     d.querySelector('[data-field="sides"]').checked=true;
     return true;})()`);
+  const formFig = await evaluate(`(()=>{const d=document.querySelector('[data-el="dialog"]'); const before=d.querySelectorAll('.form-fig .bp[data-l="1"]').length;
+    d.querySelector('[data-muscle="secondary:obliques"]').click();
+    return { main: d.querySelectorAll('.form-fig .bp[data-l="3"]').length, before, after: d.querySelectorAll('.form-fig .bp[data-l="1"]').length };})()`);
+  check('Formular: Figur folgt den gewählten Muskeln sofort', formFig.main === 1 && formFig.before === 0 && formFig.after === 1, JSON.stringify(formFig));
   await evaluate(`document.querySelector('[data-action="save"]').click(); true`);
   await waitEval(`!document.querySelector('[data-el="dialog"]').open && [...document.querySelectorAll('.ex-name')].some(h=>h.textContent.includes('Smoke Test Übung'))`);
   const rowText = await evaluate(`([...document.querySelectorAll('.ex-row')].find(r=>r.textContent.includes('Smoke Test Übung'))||{}).textContent || ''`);
@@ -257,6 +286,9 @@ try {
   await evaluate(`const bs=document.querySelectorAll('[data-pick]'); bs[0].click(); bs[1].click(); true`);
   await evaluate(`document.querySelector('[data-action="back"]').click(); true`); // "Fertig"
   await waitEval(`document.querySelectorAll('.edit-ex').length === 2`);
+  const over = await evaluate(`(()=>{const m=document.querySelector('[data-el="muscles"]'); return { hidden: m.hidden, sides: m.querySelectorAll('.body-side').length,
+    top: m.querySelectorAll('.bp[data-l="3"]').length, focus: m.querySelector('.muscle-top')?.textContent || '' };})()`);
+  check('Editor: Muskel-Überblick des Zirkels mit Schwerpunkt', over.hidden === false && over.sides === 2 && over.top >= 1 && over.focus.length > 2, JSON.stringify(over));
   const dur0 = await evaluate(`document.querySelector('[data-el="duration"]').textContent`);
   check('Editor: zwei Übungen, Dauer 0:04 (1 Runde × 2×2 s)', dur0 === '0:04', dur0);
 

@@ -90,6 +90,25 @@ for (const scheme of ['light', 'dark']) {
   });
 }
 
+// Body graphic: the load steps are graphics, not text. The strongest step must stand out
+// clearly from the resting body and from the card (3:1, WCAG 1.4.11); the steps in between
+// must get stronger step by step, so the order also reads without colour vision.
+for (const scheme of ['light', 'dark']) {
+  test(`Muskelgrafik: Stufen sind unterscheidbar, ${scheme === 'light' ? 'heller' : 'dunkler'} Modus`, () => {
+    const colour = (name) => parse(tokens[name][scheme]);
+    const surface = colour('--surface');
+    const steps = ['--muscle-0', '--muscle-1', '--muscle-2', '--muscle-3'].map(colour);
+    assert.ok(contrast(steps[3], steps[0]) >= 3, `Stufe 3 gegen Körper: ${contrast(steps[3], steps[0]).toFixed(2)}`);
+    assert.ok(contrast(steps[3], surface) >= 3, `Stufe 3 gegen Karte: ${contrast(steps[3], surface).toFixed(2)}`);
+    // each step moves further away from the card than the one before, by a visible amount
+    const distance = steps.map((c) => contrast(c, surface));
+    for (let i = 1; i < distance.length; i++) {
+      assert.ok(distance[i] >= distance[i - 1] * 1.2, `Stufe ${i} hebt sich zu wenig von Stufe ${i - 1} ab: ${distance.map((d) => d.toFixed(2)).join(' / ')}`);
+    }
+    assert.ok(contrast(colour('--muscle-line'), surface) >= 1.5, 'Umriss gegen Karte');
+  });
+}
+
 test('Jedes Farb-Token mit zwei Werten ist in beiden Schemata lesbar definiert', () => {
   for (const [name, t] of Object.entries(tokens)) {
     if (!/^(#|rgb\()/.test(t.light)) continue; // sizes, fonts, curves

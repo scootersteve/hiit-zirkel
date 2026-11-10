@@ -219,7 +219,7 @@ dialog.form-sheet::backdrop { background: var(--scrim); }
 .form { display: flex; flex-direction: column; height: 100%; }
 .form-bar {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr); /* as .navbar */
   align-items: center;
   gap: 4px;
   padding: 6px;
@@ -227,14 +227,19 @@ dialog.form-sheet::backdrop { background: var(--scrim); }
   border-radius: var(--r-l) var(--r-l) 0 0;
   background: var(--bar);
 }
-.form-bar h2 { font-size: var(--t-body); font-weight: 600; text-align: center; }
+.form-bar h2 { min-width: 0; font-size: var(--t-body); font-weight: 600; text-align: center; overflow-wrap: anywhere; }
 .form-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 16px var(--gutter) calc(env(safe-area-inset-bottom, 0px) + 32px); }
 .form-body .group-title, .form-body .group-foot { margin-left: 0; margin-right: 0; }
 .form-delete { margin-top: 26px; }
 
+.license-source { font-weight: 600; overflow-wrap: anywhere; }
+.license-text { margin-top: 12px; font-size: var(--t-footnote); color: var(--text-2); white-space: pre-line; overflow-wrap: anywhere; }
+
 /* ---------- body graphic (front and back, regions filled by load level) ---------- */
 .body-fig { display: flex; justify-content: center; gap: 8%; height: var(--body-h, 15rem); }
-.body-side { flex: none; height: 100%; width: auto; aspect-ratio: 639 / 1264; }
+/* a side may get narrower than its height asks for (large text, 320 px): the drawing then
+   scales down inside it instead of being cut off */
+.body-side { flex: 0 1 auto; min-width: 0; height: 100%; width: auto; aspect-ratio: 639 / 1264; }
 .bp { fill: var(--muscle-0); }
 .bp[data-l="1"] { fill: var(--muscle-1); }
 .bp[data-l="2"] { fill: var(--muscle-2); }
@@ -250,16 +255,17 @@ dialog.form-sheet::backdrop { background: var(--scrim); }
 dialog.form-sheet.fit { height: fit-content; max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 12px); }
 dialog.form-sheet.fit .form { height: auto; max-height: inherit; }
 .ex-detail-fig { --body-h: min(18rem, 40dvh); padding: 16px var(--gutter) 14px; }
+.ex-detail-fig.form-fig { --body-h: min(12rem, 30dvh); }
 .muscle-cell { align-items: flex-start; }
 .muscle-cell .swatch { margin-top: 0.3em; }
-.muscle-cell .cell-label { flex: none; }
-.muscle-cell .cell-value { flex: 1; min-width: 0; text-align: right; overflow-wrap: anywhere; }
+.muscle-cell .cell-label { overflow-wrap: anywhere; }
+.muscle-kind { display: block; font-size: var(--t-footnote); color: var(--text-2); }
 
 /* circuit overview in the editor */
 /* figure and text side by side; the text drops below when it would get narrower than 8rem
    (320 px wide phones, large text sizes) */
 .muscle-over { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 14px; padding: 14px var(--gutter); }
-.muscle-over .body-fig { --body-h: 9.5rem; flex: none; gap: 8px; }
+.muscle-over .body-fig { --body-h: 9.5rem; flex: 0 1 auto; min-width: 0; gap: 8px; }
 .muscle-info { flex: 1 1 8rem; min-width: 0; display: grid; gap: 3px; }
 .muscle-info h3 { font-size: var(--t-footnote); font-weight: 400; color: var(--text-2); }
 .muscle-info p { overflow-wrap: anywhere; }

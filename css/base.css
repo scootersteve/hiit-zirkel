@@ -104,7 +104,8 @@ h1:focus { outline: none; } /* headings get focus on screen change for screen re
   top: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* the buttons keep their width, the title gives way (ellipsis) when the text is large */
+  grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr);
   align-items: center;
   gap: 4px;
   margin: 0 calc(-1 * var(--gutter)) 8px;

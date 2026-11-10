@@ -46,3 +46,16 @@ Am schnellsten mit dem Zirkel **"Schnelltest (alle Signale)"** (2:33 min).
 | 7 | Ring im Training | bewegt sich einmal pro Sekunde weich weiter, Restzeit aus 2 m lesbar |
 | 8 | Blur der Leisten (Tab-Leiste, obere Leiste im Editor) | kein Ruckeln beim Scrollen auf dem iPhone 13 |
 
+
+## Muskelgrafik 0.7.0 (Branch feature/teil-c, noch nicht veröffentlicht)
+
+| # | Prüfpunkt | Erwartung |
+|---|---|---|
+| 1 | Tab "Übungen": eine eingebaute Übung antippen (z.B. Burpees) | Blatt mit Körper von vorne und hinten, Hauptmuskeln kräftig rot, Nebenmuskeln hell, darunter dieselben Muskeln als Text. "Fertig" schließt |
+| 2 | Dasselbe im hellen und im dunklen Modus | Figur und alle drei Farbstufen in beiden gut zu unterscheiden, auch draußen bei Sonne |
+| 3 | Eigene Übung anlegen, Muskeln antippen | Figur im Formular färbt sich sofort mit, ohne Ruckeln |
+| 4 | Zirkel bearbeiten (z.B. Beispiel-Zirkel), zu "Muskeln" scrollen | Figur mit Schwerpunkt, Text daneben. Übung entfernen oder Zeit ändern: Grafik passt sich an |
+| 5 | Scrollen im Editor und in der Übungsliste | bleibt flüssig (die Figur besteht aus vielen Flächen) |
+| 6 | Einstellungen → Lizenzen und Quellen → Körpergrafik | Blatt mit dem MIT-Lizenztext, "Fertig" und Tippen daneben schließen |
+| 7 | Textgröße des iPhones groß stellen | Figur wird kleiner statt abgeschnitten, "Zurück" und Titel in der oberen Leiste überlappen nicht |
+| 8 | Flugmodus, App neu öffnen, Übung antippen | Grafik erscheint auch offline |

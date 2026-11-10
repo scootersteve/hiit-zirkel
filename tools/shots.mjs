@@ -54,7 +54,7 @@ try {
       const tx = db.transaction('templates', 'readwrite');
       tx.objectStore('templates').put({
         id: 't-shot', name: 'Montag Ganzkörper',
-        exercises: ['Burpees', 'Klimmzüge', 'Kettlebell Swing', 'Liegestütze', 'Ausfallschritte'].map((name, i) => ({ id: 'x' + i, name, sides: false })),
+        exercises: [['burpees', 'Burpees'], ['pullups', 'Klimmzüge'], ['kb-swing', 'Kettlebell Swing'], ['pushups', 'Liegestütze'], ['lunges', 'Ausfallschritte']].map(([id, name]) => ({ id, name, sides: false })),
         settings: { rounds: 4, workS: 45, restS: 15, roundRestS: 60, prepS: 10, warmupS: 0, cooldownS: 0 },
         createdAt: 1, updatedAt: 1, lastUsedAt: 2, sample: false,
       });
@@ -81,6 +81,8 @@ try {
     await shot(`auswahl-${mode}`);
     await tap('[data-screen="picker"] [data-action="add"]');
     await b.waitEval(`document.querySelector('dialog.form-sheet[open]')`);
+    await tap('[data-muscle="primary:gluteal"]');
+    await tap('[data-muscle="secondary:hamstring"]');
     await shot(`eigene-uebung-${mode}`);
     await tap('dialog.form-sheet [data-action="cancel"]');
     await sleep(400);
@@ -125,6 +127,11 @@ try {
 
     await tab('library', `document.querySelector('[data-screen="library"]')`);
     await shot(`uebungen-${mode}`);
+    await tap('[data-info="burpees"]');
+    await b.waitEval(`document.querySelector('dialog.form-sheet[open] .body-fig')`);
+    await shot(`uebung-muskeln-${mode}`);
+    await tap('dialog.form-sheet [data-action="cancel"]');
+    await sleep(400);
     await tab('history', `document.querySelector('[data-screen="history"]')`);
     await shot(`verlauf-${mode}`);
 
