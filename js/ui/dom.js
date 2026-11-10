@@ -13,6 +13,9 @@ export function setText(el, text) {
 
 const STROKE = {
   chevronLeft: '<path d="M15 5l-7 7 7 7"/>',
+  chevronRight: '<path d="M9 5l7 7-7 7"/>',
+  chevronDown: '<path d="M6 9.5l6 6 6-6"/>',
+  repeat: '<path d="M4.5 12a7.5 7.5 0 0 1 12.9-5.2L19.5 9"/><path d="M19.5 4v5h-5"/><path d="M19.5 12a7.5 7.5 0 0 1-12.9 5.2L4.5 15"/><path d="M4.5 20v-5h5"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
   close: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
@@ -147,6 +150,53 @@ export function once(fn) {
       busy = false;
     }
   };
+}
+
+// ---------- confirmation sheet ----------
+
+/**
+ * iOS-style action sheet from the bottom: a destructive confirm button and "Abbrechen".
+ * Resolves true when confirmed, false on cancel, Escape or a tap outside.
+ */
+export function confirmSheet({ title, message = '', confirmLabel = 'Löschen', cancelLabel = 'Abbrechen' }) {
+  return new Promise((resolve) => {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'sheet';
+    dialog.innerHTML = `
+      <div class="sheet-group">
+        <div class="sheet-head">
+          <p class="sheet-title">${esc(title)}</p>
+          ${message ? `<p class="sheet-msg">${esc(message)}</p>` : ''}
+        </div>
+        <button class="sheet-btn danger" data-sheet="ok">${esc(confirmLabel)}</button>
+      </div>
+      <button class="sheet-btn cancel" data-sheet="cancel">${esc(cancelLabel)}</button>`;
+    document.body.appendChild(dialog);
+
+    let answer = false;
+    const finish = () => {
+      dialog.classList.add('closing');
+      const done = () => {
+        dialog.close();
+        dialog.remove();
+        resolve(answer);
+      };
+      if (reducedMotion()) done();
+      else setTimeout(done, 200);
+    };
+    dialog.addEventListener('click', (event) => {
+      const which = event.target.closest('[data-sheet]')?.dataset.sheet;
+      if (which === 'ok') answer = true;
+      // a tap on the dimmed area hits the dialog element itself
+      if (which || event.target === dialog) finish();
+    });
+    dialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      finish();
+    });
+    dialog.showModal();
+    dialog.querySelector('[data-sheet="cancel"]').focus({ preventScroll: true });
+  });
 }
 
 // ---------- toast ----------

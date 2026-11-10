@@ -90,7 +90,13 @@ async function showTab(tab, nav = 'none') {
   } else if (tab === 'history') {
     const entries = await safely(db.listHistory(), []);
     if (token !== navToken) return;
-    showHistory(root, { db, entries, nav, onCleared: () => showTab('history') });
+    showHistory(root, {
+      db,
+      entries,
+      nav,
+      onRepeat: (entry) => run(circuitFromTemplate(entry.circuit), entry.templateId || null),
+      onCleared: () => showTab('history'),
+    });
   } else if (tab === 'settings') {
     showSettings(root, { db, settings, nav, onSettingsChange: persistSettings });
   } else {
@@ -131,11 +137,12 @@ function openEditor(working, isExisting, nav = 'push') {
 
   async function openPicker() {
     const token = ++navToken;
-    const custom = await safely(db.listCustomExercises(), []);
+    const [custom, usage] = await Promise.all([safely(db.listCustomExercises(), []), safely(db.getExerciseUsage(), {})]);
     if (token !== navToken) return;
     showLibrary(root, {
       db,
       custom,
+      usage,
       nav: 'push',
       onBack: () => show('pop'),
       pick: (exercise) => {

@@ -66,13 +66,16 @@ const PAIRS = [
   ['--accent', ['--surface', '--accent-tint'], 4.5],
   ['--accent', ['--bg', '--accent-tint'], 4.5],
   ['--on-accent', ['--accent-fill'], 4.5],
+  ['--on-accent', ['--accent-fill-top'], 4.5],
+  ['--on-accent', ['--accent-fill-bottom'], 4.5],
   ['--success', ['--surface'], 4.5],
   ['--success', ['--bg'], 4.5],
   ['--danger', ['--surface'], 4.5],
   ['--danger', ['--bg'], 4.5],
   ['--danger', ['--surface', '--danger-tint'], 4.5],
   ['--on-danger', ['--danger-fill'], 4.5],
-  ...['prep', 'warmup', 'work', 'rest', 'roundRest', 'cooldown'].map((p) => ['--on-phase', [`--phase-${p}`], 4.5]),
+  ...['prep', 'warmup', 'work', 'rest', 'roundRest', 'cooldown'].flatMap((p) =>
+    ['', '-top', '-bottom'].map((stop) => ['--on-phase', [`--phase-${p}${stop}`], 4.5])),
 ];
 
 for (const scheme of ['light', 'dark']) {

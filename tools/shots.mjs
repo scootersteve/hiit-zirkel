@@ -66,6 +66,59 @@ try {
     await shot(`home-${mode}`);
     await shot(`home-ganz-${mode}`, { full: true });
 
+    // editor, picker, own-exercise form, delete sheet
+    await tap('[data-card="edit"][data-kind="template"]');
+    await b.waitEval(`document.querySelector('[data-screen="editor"]')`);
+    await shot(`editor-${mode}`);
+    await shot(`editor-ganz-${mode}`, { full: true });
+    await tap('[data-screen="editor"] [data-action="delete"]');
+    await b.waitEval(`document.querySelector('dialog.sheet[open]')`);
+    await shot(`sheet-${mode}`);
+    await tap('dialog.sheet [data-sheet="cancel"]');
+    await sleep(400);
+    await tap('[data-screen="editor"] [data-action="add"]');
+    await b.waitEval(`document.querySelector('[data-screen="picker"]')`);
+    await shot(`auswahl-${mode}`);
+    await tap('[data-screen="picker"] [data-action="add"]');
+    await b.waitEval(`document.querySelector('dialog.form-sheet[open]')`);
+    await shot(`eigene-uebung-${mode}`);
+    await tap('dialog.form-sheet [data-action="cancel"]');
+    await sleep(400);
+    await tap('[data-screen="picker"] [data-action="back"]');
+    await b.waitEval(`document.querySelector('[data-screen="editor"]')`);
+    await tap('[data-screen="editor"] [data-action="back"]');
+    await b.waitEval(`document.querySelector('[data-nav="new"]')`);
+
+    // training: one shot per phase, then the end screen
+    await tap('[data-card="start"][data-id="sample-quick"]');
+    await b.waitEval(`document.querySelector('.run')`);
+    await shot(`lauf-vorlauf-${mode}`);
+    const skipTo = async (phase) => {
+      for (let i = 0; i < 12; i++) {
+        if (await b.evaluate(`document.querySelector('.run')?.dataset.phase === ${JSON.stringify(phase)}`)) return;
+        await tap('[data-action="skip"]');
+        await sleep(420);
+      }
+    };
+    await skipTo('work');
+    await sleep(2500); // let the ring and bar move a little
+    await shot(`lauf-belastung-${mode}`);
+    await skipTo('rest');
+    await shot(`lauf-pause-${mode}`);
+    await skipTo('roundRest');
+    await shot(`lauf-rundenpause-${mode}`);
+    await tap('[data-action="toggle"]');
+    await sleep(300);
+    await shot(`lauf-pausiert-${mode}`);
+    for (let i = 0; i < 12 && (await b.evaluate(`!!document.querySelector('.run')`)); i++) {
+      await tap('[data-action="skip"]');
+      await sleep(420);
+    }
+    await b.waitEval(`document.querySelector('[data-screen="done"]')`);
+    await shot(`abschluss-${mode}`);
+    await tap('[data-action="home"]');
+    await b.waitEval(`document.querySelector('[data-nav="new"]')`);
+
     await tab('settings', `document.querySelector('[data-segmented="theme"]')`);
     await shot(`einstellungen-${mode}`);
     await shot(`einstellungen-ganz-${mode}`, { full: true });

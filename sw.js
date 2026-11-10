@@ -19,6 +19,7 @@ const ASSETS = [
   "./js/core/id.js",
   "./js/core/library.js",
   "./js/core/plan.js",
+  "./js/core/stats.js",
   "./js/core/timer.js",
   "./js/core/transfer.js",
   "./js/data/exercises.js",

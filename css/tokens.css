@@ -21,11 +21,15 @@
   --text-2: light-dark(#5c5c61, #aeaeb2);        /* secondary: meta lines, hints */
   --text-3: light-dark(#8a8a8e, #7c7c80);        /* placeholders, chevrons, disabled (non-essential) */
 
-  /* ---- accent (Dojo orange) ---- */
-  --accent: light-dark(#b84300, #ff9230);        /* tinted text and icons on a surface */
-  --accent-fill: #ff8a1f;                        /* filled primary button: the same bright orange in both schemes */
-  --on-accent: #1b0f00;
-  --accent-tint: light-dark(rgb(255 138 31 / 0.09), rgb(255 146 48 / 0.18));
+  /* ---- accent: system-style blue for everything tappable that is not the main action ---- */
+  --accent: light-dark(#0062cc, #4aa3ff);        /* tinted text and icons on a surface */
+  --accent-tint: light-dark(rgb(0 113 227 / 0.1), rgb(64 156 255 / 0.16));
+
+  /* ---- main action (Start, Speichern): fitness green, dark label, soft top-to-bottom gradient ---- */
+  --accent-fill: #30d158;                        /* flat fallback and base for the contrast test */
+  --accent-fill-top: #4be077;
+  --accent-fill-bottom: #28c14e;
+  --on-accent: #03210c;
 
   /* ---- status ---- */
   --success: light-dark(#1d7a36, #30d158);
@@ -35,13 +39,14 @@
   --on-danger: light-dark(#ffffff, #1a0000);
   --danger-tint: light-dark(rgb(215 0 21 / 0.08), rgb(255 69 58 / 0.18));
 
-  /* ---- training phases: full-bleed colours, white text, identical in light and dark ---- */
-  --phase-prep: #1d4ed8;
-  --phase-warmup: #b45309;
-  --phase-work: #dc2626;
-  --phase-rest: #15803d;
-  --phase-roundRest: #6d28d9;
-  --phase-cooldown: #0e7490;
+  /* ---- training phases: full-bleed, white text, identical in light and dark.
+     Each phase is a soft top-to-bottom gradient (-top / -bottom); --phase-x is its middle. ---- */
+  --phase-prep-top: #2f6ee6;      --phase-prep: #2160d8;      --phase-prep-bottom: #1a4fbd;
+  --phase-warmup-top: #b85707;    --phase-warmup: #b35206;    --phase-warmup-bottom: #9a4503;
+  --phase-work-top: #db2e35;      --phase-work: #d42a30;      --phase-work-bottom: #b31822;
+  --phase-rest-top: #1a8540;      --phase-rest: #19803c;      --phase-rest-bottom: #126b31;
+  --phase-roundRest-top: #7a4be0; --phase-roundRest: #6d3fd6; --phase-roundRest-bottom: #5a2fbf;
+  --phase-cooldown-top: #107e97;  --phase-cooldown: #0f7a92;  --phase-cooldown-bottom: #0b6378;
   --on-phase: #ffffff;
 
   /* ---- type scale (rem = the device's text size: 17px by default on iOS) ---- */

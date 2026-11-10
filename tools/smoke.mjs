@@ -183,7 +183,7 @@ try {
   // Library opens
   await goTab('library', `document.querySelector('[data-screen="library"]')`);
   const count0 = await evaluate(`document.querySelector('[data-el="count"]').textContent`);
-  check('Übungsliste öffnet mit Zählung', /\d+ von \d+ Übungen/.test(count0), count0);
+  check('Übungsliste öffnet mit Zählung', /^\d+ Übungen$/.test(count0), count0);
 
   // Diacritic-insensitive search
   await evaluate(`(()=>{const s=document.querySelector('.lib-search'); s.value='klimmzuge'; s.dispatchEvent(new Event('input',{bubbles:true})); return true;})()`);
@@ -233,9 +233,9 @@ try {
   await waitEval(`!document.querySelector('[data-el="dialog"]').open`);
   await evaluate(`[...document.querySelectorAll('[data-edit]')].find(b=>b.closest('.ex-row').textContent.includes('Smoke Test Übung')).click(); true`);
   await waitEval(`document.querySelector('[data-el="dialog"]').open`);
-  await evaluate(`document.querySelector('[data-action="delete"]').click(); true`);
-  await waitEval(`!document.querySelector('[data-el="del-confirm"]').hidden`);
-  await evaluate(`document.querySelector('[data-action="delete-confirm"]').click(); true`);
+  await evaluate(`document.querySelector('[data-el="dialog"] [data-action="delete"]').click(); true`);
+  await waitEval(`document.querySelector('dialog.sheet[open]')`);
+  await evaluate(`document.querySelector('dialog.sheet [data-sheet="ok"]').click(); true`);
   const gone = await waitEval(`!document.querySelector('[data-el="dialog"]').open && ![...document.querySelectorAll('.ex-name')].some(h=>h.textContent.includes('Smoke Test Übung'))`).then(() => true).catch(() => false);
   check('Eigene Übung gelöscht', gone);
 
@@ -276,6 +276,7 @@ try {
   await evaluate(`document.querySelector('[data-card="start"][data-kind="template"]').click(); true`);
   await waitEval(`document.querySelector('.run')`);
   await evaluate(`document.querySelector('[data-action="skip"]').click(); true`);
+  await sleep(400); // two skips within 350 ms count as one accidental double tap
   await evaluate(`document.querySelector('[data-action="skip"]').click(); true`);
   await waitEval(`document.querySelector('.done')`);
   check('Zirkel gestartet und bis zum Ende durchgelaufen', true);
@@ -284,14 +285,14 @@ try {
   await evaluate(`document.querySelector('[data-action="home"]').click(); true`);
   await waitEval(`document.querySelector('[data-nav="new"]')`);
   await goTab('history', `document.querySelector('[data-screen="history"]')`);
-  const histHit = await evaluate(`[...document.querySelectorAll('.hist-main h3')].some(h=>h.textContent.includes('Smoke Zirkel'))`);
+  const histHit = await evaluate(`[...document.querySelectorAll('.hist-name')].some(h=>h.textContent.includes('Smoke Zirkel'))`);
   check('Verlauf enthält den Lauf', histHit);
 
   // Persists across reload
   await send('Page.reload');
   await waitEval(`document.querySelector('#app main')`);
   await goTab('history', `document.querySelector('[data-screen="history"]')`);
-  const histPersist = await waitEval(`[...document.querySelectorAll('.hist-main h3')].some(h=>h.textContent.includes('Smoke Zirkel'))`).then(() => true).catch(() => false);
+  const histPersist = await waitEval(`[...document.querySelectorAll('.hist-name')].some(h=>h.textContent.includes('Smoke Zirkel'))`).then(() => true).catch(() => false);
   check('Verlauf bleibt nach Reload (IndexedDB)', histPersist);
 
   // Edit the template, delete it → gone from home
@@ -299,8 +300,8 @@ try {
   await evaluate(`document.querySelector('[data-card="edit"][data-kind="template"]').click(); true`);
   await waitEval(`document.querySelector('[data-action="delete"]')`);
   await evaluate(`document.querySelector('[data-action="delete"]').click(); true`);
-  await waitEval(`!document.querySelector('[data-el="del-confirm"]').hidden`);
-  await evaluate(`document.querySelector('[data-action="delete-confirm"]').click(); true`);
+  await waitEval(`document.querySelector('dialog.sheet[open]')`);
+  await evaluate(`document.querySelector('dialog.sheet [data-sheet="ok"]').click(); true`);
   const tmplGone = await waitEval(`document.querySelector('[data-nav="new"]') && ![...document.querySelectorAll('.circuit-head h3')].some(h=>h.textContent.includes('Smoke Zirkel'))`).then(() => true).catch(() => false);
   check('Vorlage gelöscht', tmplGone);
 

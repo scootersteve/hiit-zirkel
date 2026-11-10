@@ -1,6 +1,9 @@
-// Exercise library screen: browse the built-in + own exercises, filter/search, and manage
-// (create, edit, delete) custom exercises. Muscles are shown as text chips — the body graphic
-// is step 9. No circuit picking yet; that arrives with the editor.
+// Exercise library. Two uses:
+//  - tab "Übungen": browse built-in and own exercises, create/edit/delete own ones
+//  - picker (pushed from the circuit editor, `pick` given): tap a row to add it to the circuit,
+//    recently used exercises first, "Fertig" returns
+// Search is diacritic-insensitive; when it finds nothing, the search text can become an own
+// exercise in one tap. Muscles are shown as text; the body graphic follows later.
 
 import { CATEGORIES, EQUIPMENT } from '../data/exercises.js';
 import { MUSCLES } from '../data/muscles.js';
@@ -12,7 +15,7 @@ import {
   updateCustomExercise,
   byName,
 } from '../core/library.js';
-import { esc, icon, mount, once } from './dom.js';
+import { esc, icon, mount, once, confirmSheet } from './dom.js';
 
 const options = (map, selected) =>
   Object.entries(map)
@@ -29,136 +32,165 @@ const muscleChips = (group, selected) =>
 
 function exerciseRow(e, pickMode) {
   const meta = [CATEGORIES[e.category], e.equipment !== 'none' ? EQUIPMENT[e.equipment] : null].filter(Boolean);
-  const muscles = [
-    ...e.primaryMuscles.map((m) => `<span class="chip sm">${esc(MUSCLES[m] || m)}</span>`),
-    ...e.secondaryMuscles.map((m) => `<span class="chip sm muted">${esc(MUSCLES[m] || m)}</span>`),
-  ].join('');
-  const action = pickMode
-    ? `<button class="btn primary ex-add" data-pick="${esc(e.id)}">${icon('plus')}Hinzufügen</button>`
-    : e.custom
-      ? `<button class="icon-btn" data-edit="${esc(e.id)}" aria-label="${esc(e.name)} bearbeiten">Bearbeiten</button>`
-      : '';
-  return `
-    <article class="ex-row">
-      <div class="ex-main">
-        <h3 class="ex-name">${esc(e.name)}${e.sides ? '<span class="ex-tag">L/R</span>' : ''}${e.custom ? '<span class="ex-tag own">Eigen</span>' : ''}</h3>
-        <p class="ex-meta">${meta.map(esc).join(' · ')}</p>
-        ${muscles ? `<p class="ex-muscles">${muscles}</p>` : ''}
-      </div>
-      ${action}
-    </article>`;
+  const primary = e.primaryMuscles.map((m) => MUSCLES[m] || m).join(', ');
+  const tags = `${e.sides ? '<span class="tag">L/R</span>' : ''}${e.custom ? '<span class="tag accent">Eigene</span>' : ''}`;
+  const body = `
+    <span class="ex-main">
+      <span class="ex-name">${esc(e.name)}${tags}</span>
+      <span class="ex-meta">${esc(meta.join(' · '))}${primary ? ` · ${esc(primary)}` : ''}</span>
+    </span>`;
+  if (pickMode) {
+    return `<button class="cell ex-row" data-pick="${esc(e.id)}" aria-label="${esc(e.name)} hinzufügen">${body}<span class="ex-add">${icon('plus')}</span></button>`;
+  }
+  if (e.custom) {
+    return `<button class="cell ex-row" data-edit="${esc(e.id)}" aria-label="${esc(e.name)} bearbeiten">${body}<span class="ex-chevron">${icon('chevronRight')}</span></button>`;
+  }
+  return `<div class="cell ex-row">${body}</div>`;
 }
 
-// pick(exercise): optional. When given, the screen is a picker pushed from the circuit editor;
-// each row adds an exercise and "Fertig" (onBack) returns. Without it, it is the tab "Übungen"
-// and manages the exercises. `custom` is loaded by the caller, so the screen appears at once.
-export function showLibrary(root, { db, custom: initialCustom = [], onBack = () => {}, pick = null, nav = 'none' }) {
+/**
+ * pick(exercise): when given, the screen is the picker. `usage` ({ id: timestamp }) puts recently
+ * used exercises first there. `custom` and `usage` are loaded by the caller, so the screen
+ * appears at once.
+ */
+export function showLibrary(root, { db, custom: initialCustom = [], usage = {}, onBack = () => {}, pick = null, nav = 'none' }) {
   const pickMode = typeof pick === 'function';
   let custom = initialCustom;
   const filter = { query: '', category: '', equipment: '' };
   let editing = null; // the custom exercise being edited, or null for a new one
 
-  const addOwn = `<button class="btn tinted small" data-action="add">${icon('plus')}Eigene</button>`;
   const head = pickMode
     ? `<header class="navbar">
          <span></span>
          <h1>Übung hinzufügen</h1>
          <button class="nav-btn end strong" data-action="back">Fertig</button>
        </header>`
-    : `<header class="large-title title-row"><h1>Übungen</h1>${addOwn}</header>`;
+    : `<header class="large-title title-row">
+         <h1>Übungen</h1>
+         <button class="round-btn" data-action="add" aria-label="Eigene Übung anlegen">${icon('plus')}</button>
+       </header>`;
 
   const screen = mount(root, `
     <main class="page${pickMode ? ' has-navbar' : ''}" data-screen="${pickMode ? 'picker' : 'library'}">
       ${head}
 
-      <div class="lib-filters card">
-        <input type="search" class="lib-search" data-field="search" placeholder="Übung suchen" aria-label="Übung suchen" enterkeyhint="search">
-        <div class="lib-selects">
+      <label class="search">
+        ${icon('search')}
+        <input type="search" class="lib-search" data-field="search" placeholder="Suchen" aria-label="Übung suchen" enterkeyhint="search" autocomplete="off">
+      </label>
+      <div class="filter-row">
+        <label class="select-pill">
           <select data-field="category" aria-label="Kategorie"><option value="">Alle Kategorien</option>${options(CATEGORIES, '')}</select>
+          ${icon('chevronDown')}
+        </label>
+        <label class="select-pill">
           <select data-field="equipment" aria-label="Ausrüstung"><option value="">Alle Geräte</option>${options(EQUIPMENT, '')}</select>
-        </div>
+          ${icon('chevronDown')}
+        </label>
       </div>
 
-      <div class="lib-count-row">
-        <p class="lib-count" data-el="count"></p>
-        ${pickMode ? addOwn : ''}
-      </div>
-      <div data-el="list"></div>
+      <p class="group-title" data-el="count"></p>
+      <div class="group" data-el="list"></div>
+      <div data-el="empty"></div>
+      ${pickMode ? `<button class="btn tinted list-after" data-action="add">${icon('plus')}Eigene Übung anlegen</button>` : ''}
 
-      <dialog class="confirm lib-dialog" data-el="dialog"></dialog>
+      <dialog class="form-sheet" data-el="dialog"></dialog>
     </main>`, { nav, tabs: !pickMode });
 
-  const listEl = screen.querySelector('[data-el="list"]');
-  const countEl = screen.querySelector('[data-el="count"]');
-  const dialog = screen.querySelector('[data-el="dialog"]');
+  const $ = (sel) => screen.querySelector(sel);
+  const listEl = $('[data-el="list"]');
+  const countEl = $('[data-el="count"]');
+  const emptyEl = $('[data-el="empty"]');
+  const dialog = $('[data-el="dialog"]');
+
+  const recency = (e) => usage[e.id] || 0;
+  const order = (a, b) => (pickMode ? recency(b) - recency(a) : 0) || byName(a, b);
 
   function renderList() {
     const all = combineExercises(custom);
-    const shown = filterExercises(all, filter).sort(byName);
-    countEl.textContent = `${shown.length} von ${all.length} Übungen`;
-    listEl.innerHTML = shown.length
-      ? shown.map((e) => exerciseRow(e, pickMode)).join('')
-      : `<p class="lib-empty">Keine Übung gefunden. ${custom.length || filter.query || filter.category || filter.equipment ? 'Filter ändern' : ''}</p>`;
+    const shown = filterExercises(all, filter).sort(order);
+    countEl.textContent = shown.length === all.length ? `${all.length} Übungen` : `${shown.length} von ${all.length} Übungen`;
+    listEl.hidden = shown.length === 0;
+    listEl.innerHTML = shown.map((e) => exerciseRow(e, pickMode)).join('');
+
+    const query = filter.query.trim();
+    emptyEl.innerHTML = shown.length
+      ? ''
+      : `<div class="card empty-card">
+           <h3>Keine Übung gefunden</h3>
+           <p>${query ? 'Lege sie als eigene Übung an, sie bleibt dann gespeichert.' : 'Mit diesen Filtern gibt es keine Übung.'}</p>
+           ${query ? `<button class="btn primary" data-action="add-query">${icon('plus')}„${esc(query)}" als eigene Übung anlegen</button>` : ''}
+         </div>`;
   }
 
-  function pickExercise(id, btn) {
-    if (btn.classList.contains('added')) return; // a double tap must not add the exercise twice
+  function pickExercise(id, row) {
+    if (row.classList.contains('added')) return; // a double tap must not add the exercise twice
     const exercise = combineExercises(custom).find((e) => e.id === id);
     if (!exercise) return;
     pick(exercise);
-    btn.innerHTML = `${icon('check')}Hinzugefügt`;
-    btn.classList.add('added');
+    usage[exercise.id] = Date.now();
+    db.touchExerciseUsage(exercise.id).catch(() => {});
+    const mark = row.querySelector('.ex-add');
+    mark.innerHTML = icon('check');
+    row.classList.add('added');
     setTimeout(() => {
-      if (screen.contains(btn)) {
-        btn.innerHTML = `${icon('plus')}Hinzufügen`;
-        btn.classList.remove('added');
-      }
-    }, 1200);
+      if (!screen.contains(row)) return;
+      mark.innerHTML = icon('plus');
+      row.classList.remove('added');
+    }, 1000);
   }
 
-  function openDialog(exercise) {
+  function openDialog(exercise, presetName = '') {
     editing = exercise;
-    const e = exercise || { name: '', category: 'full', equipment: 'none', primaryMuscles: [], secondaryMuscles: [], sides: false };
+    const e = exercise || { name: presetName, category: 'full', equipment: 'none', primaryMuscles: [], secondaryMuscles: [], sides: false };
     const primary = new Set(e.primaryMuscles);
     const secondary = new Set(e.secondaryMuscles);
     dialog.innerHTML = `
-      <h2>${exercise ? 'Übung bearbeiten' : 'Eigene Übung'}</h2>
-      <form class="lib-form" data-el="form">
-        <label class="field">
-          <span>Name</span>
-          <input type="text" data-field="name" value="${esc(e.name)}" maxlength="60" required autocomplete="off" enterkeyhint="done">
-        </label>
-        <p class="field-warn" data-el="dup" hidden></p>
-        <div class="field-grid">
-          <label class="field"><span>Kategorie</span><select data-field="category">${options(CATEGORIES, e.category)}</select></label>
-          <label class="field"><span>Ausrüstung</span><select data-field="equipment">${options(EQUIPMENT, e.equipment)}</select></label>
-        </div>
-        <label class="row lib-sides">
-          <span class="row-label">Seitenwechsel<span class="row-hint">links/rechts, Ansage zur Halbzeit</span></span>
-          <span class="switch"><input type="checkbox" data-field="sides" ${e.sides ? 'checked' : ''}><span></span></span>
-        </label>
-        <fieldset class="field"><legend>Hauptmuskeln</legend><div class="chip-grid">${muscleChips('primary', primary)}</div></fieldset>
-        <fieldset class="field"><legend>Nebenmuskeln</legend><div class="chip-grid">${muscleChips('secondary', secondary)}</div></fieldset>
-        <p class="field-warn" data-el="error" hidden></p>
-        <div class="lib-actions" data-el="actions">
-          <button type="button" class="btn primary" data-action="save">Speichern</button>
-          <button type="button" class="btn ghost" data-action="cancel">Abbrechen</button>
-          ${exercise ? '<button type="button" class="btn danger" data-action="delete">Löschen</button>' : ''}
-        </div>
-        <div class="lib-del-confirm" data-el="del-confirm" hidden>
-          <p>„${esc(e.name)}" wirklich löschen?</p>
-          <button type="button" class="btn danger" data-action="delete-confirm">Ja, löschen</button>
-          <button type="button" class="btn ghost" data-action="delete-cancel">Abbrechen</button>
+      <form class="form" data-el="form" method="dialog">
+        <header class="form-bar">
+          <button type="button" class="nav-btn" data-action="cancel">Abbrechen</button>
+          <h2>${exercise ? 'Übung bearbeiten' : 'Eigene Übung'}</h2>
+          <button type="submit" class="nav-btn end strong" data-action="save">Sichern</button>
+        </header>
+        <div class="form-body">
+          <div class="group">
+            <label class="cell">
+              <span class="cell-label fixed">Name</span>
+              <input class="cell-input" type="text" data-field="name" value="${esc(e.name)}" maxlength="60" autocomplete="off" enterkeyhint="done" placeholder="z.B. Burpees">
+            </label>
+          </div>
+          <p class="group-foot" data-el="dup" hidden></p>
+
+          <div class="group group-gap">
+            <label class="cell">
+              <span class="cell-label">Kategorie</span>
+              <span class="cell-select"><select data-field="category">${options(CATEGORIES, e.category)}</select>${icon('chevronDown')}</span>
+            </label>
+            <label class="cell">
+              <span class="cell-label">Ausrüstung</span>
+              <span class="cell-select"><select data-field="equipment">${options(EQUIPMENT, e.equipment)}</select>${icon('chevronDown')}</span>
+            </label>
+            <label class="cell">
+              <span class="cell-label">Seitenwechsel<span class="cell-hint">Links/rechts, Ansage zur Halbzeit</span></span>
+              <span class="switch"><input type="checkbox" data-field="sides" ${e.sides ? 'checked' : ''}><span></span></span>
+            </label>
+          </div>
+
+          <h3 class="group-title">Hauptmuskeln</h3>
+          <div class="chip-grid">${muscleChips('primary', primary)}</div>
+          <h3 class="group-title">Nebenmuskeln</h3>
+          <div class="chip-grid">${muscleChips('secondary', secondary)}</div>
+
+          <p class="group-foot err" data-el="error" hidden></p>
+          ${exercise ? '<button type="button" class="btn ghost danger-text form-delete" data-action="delete">Übung löschen</button>' : ''}
         </div>
       </form>`;
-    // Enter in the name field submits the form; keep it from navigating and route it to save.
-    dialog.querySelector('[data-el="form"]').addEventListener('submit', (e) => {
-      e.preventDefault();
+    dialog.querySelector('[data-el="form"]').addEventListener('submit', (ev) => {
+      ev.preventDefault(); // Enter in the name field and "Sichern" both land here
       save();
     });
     dialog.showModal();
-    const nameInput = dialog.querySelector('[data-field="name"]');
-    nameInput.focus();
+    if (!exercise) dialog.querySelector('[data-field="name"]').focus();
     updateDuplicateWarning();
   }
 
@@ -166,16 +198,20 @@ export function showLibrary(root, { db, custom: initialCustom = [], onBack = () 
     const name = dialog.querySelector('[data-field="name"]').value.trim();
     const dup = name ? findDuplicate(combineExercises(custom), name) : null;
     const warn = dialog.querySelector('[data-el="dup"]');
-    // Editing an exercise should not warn about itself.
-    const isSelf = dup && editing && dup.id === editing.id;
-    if (dup && !isSelf) {
-      warn.textContent = `Es gibt schon „${dup.name}"${dup.custom ? ' (eigene)' : ''}. Trotzdem möglich.`;
-      warn.hidden = false;
-    } else {
-      warn.hidden = true;
-    }
+    const isSelf = dup && editing && dup.id === editing.id; // editing must not warn about itself
+    warn.hidden = !(dup && !isSelf);
+    if (!warn.hidden) warn.textContent = `Es gibt schon „${dup.name}"${dup.custom ? ' (eigene)' : ''}. Trotzdem möglich.`;
   }
 
+  const closeDialog = () => {
+    dialog.classList.add('closing');
+    setTimeout(() => {
+      dialog.classList.remove('closing');
+      dialog.close();
+    }, 200);
+  };
+
+  // a second tap on "Sichern" while saving must not create the exercise twice
   const save = once(async () => {
     const read = (f) => dialog.querySelector(`[data-field="${f}"]`);
     const picked = (group) =>
@@ -194,7 +230,7 @@ export function showLibrary(root, { db, custom: initialCustom = [], onBack = () 
         : makeCustomExercise(input, { existingIds: custom.map((c) => c.id) });
       await db.saveCustomExercise(exercise);
       custom = await db.listCustomExercises();
-      dialog.close();
+      closeDialog();
       renderList();
     } catch (err) {
       const errorEl = dialog.querySelector('[data-el="error"]');
@@ -203,28 +239,29 @@ export function showLibrary(root, { db, custom: initialCustom = [], onBack = () 
     }
   });
 
-  const doDelete = once(async () => {
+  const askDelete = once(async () => {
     if (!editing) return;
+    const ok = await confirmSheet({
+      title: 'Übung löschen?',
+      message: `„${editing.name}" wird entfernt. Zirkel, die sie enthalten, behalten den Namen.`,
+      confirmLabel: 'Übung löschen',
+    });
+    if (!ok) return;
     await db.removeCustomExercise(editing.id);
     custom = await db.listCustomExercises();
-    dialog.close();
+    closeDialog();
     renderList();
   });
 
-  const toggleDeleteConfirm = (show) => {
-    dialog.querySelector('[data-el="actions"]').hidden = show;
-    dialog.querySelector('[data-el="del-confirm"]').hidden = !show;
-  };
-
-  screen.querySelector('.lib-search').addEventListener('input', (e) => {
+  $('.lib-search').addEventListener('input', (e) => {
     filter.query = e.target.value;
     renderList();
   });
-  screen.querySelector('[data-field="category"]').addEventListener('change', (e) => {
+  $('[data-field="category"]').addEventListener('change', (e) => {
     filter.category = e.target.value;
     renderList();
   });
-  screen.querySelector('[data-field="equipment"]').addEventListener('change', (e) => {
+  $('[data-field="equipment"]').addEventListener('change', (e) => {
     filter.equipment = e.target.value;
     renderList();
   });
@@ -232,24 +269,24 @@ export function showLibrary(root, { db, custom: initialCustom = [], onBack = () 
   dialog.addEventListener('input', (e) => {
     if (e.target.matches('[data-field="name"]')) updateDuplicateWarning();
   });
-  // Native dialog closes on Escape/backdrop; make sure the delete-confirm never sticks for next open.
-  dialog.addEventListener('close', () => toggleDeleteConfirm(false));
+  dialog.addEventListener('cancel', (e) => {
+    e.preventDefault();
+    closeDialog();
+  });
 
   // Delegated to this screen's <main> (dies when the screen is left) rather than the persistent #app.
   screen.querySelector('main').addEventListener('click', (event) => {
     const btn = event.target.closest('button');
     if (!btn) return;
-    const { action, edit, muscle } = btn.dataset;
+    const { action, edit, muscle, pick: pickId } = btn.dataset;
     if (action === 'back') onBack();
     else if (action === 'add') openDialog(null);
-    else if (btn.dataset.pick) pickExercise(btn.dataset.pick, btn);
+    else if (action === 'add-query') openDialog(null, filter.query.trim());
+    else if (pickId) pickExercise(pickId, btn);
     else if (edit) openDialog(custom.find((c) => c.id === edit));
     else if (muscle) btn.setAttribute('aria-pressed', btn.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
-    else if (action === 'save') save();
-    else if (action === 'cancel') dialog.close();
-    else if (action === 'delete') toggleDeleteConfirm(true);
-    else if (action === 'delete-cancel') toggleDeleteConfirm(false);
-    else if (action === 'delete-confirm') doDelete();
+    else if (action === 'cancel') closeDialog();
+    else if (action === 'delete') askDelete();
   });
 
   renderList();

@@ -196,7 +196,7 @@ button.cell.is-pressed, button.cell:active, .cell.file-btn.is-pressed { backgrou
 }
 .btn .icon { width: 20px; height: 20px; }
 .btn.is-pressed, .btn:active { transform: scale(0.97); background: var(--fill-pressed); }
-.btn.primary { background: var(--accent-fill); color: var(--on-accent); }
+.btn.primary { background: linear-gradient(180deg, var(--accent-fill-top), var(--accent-fill-bottom)); color: var(--on-accent); }
 .btn.tinted { background: var(--accent-tint); color: var(--accent); }
 .btn.ghost { background: transparent; color: var(--accent); }
 .btn.danger { background: var(--danger-fill); color: var(--on-danger); }
@@ -302,7 +302,7 @@ input[type="range"]::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 2px;
   /* two flat colours with a hard stop: the filled part left of the thumb */
-  background: linear-gradient(to right, var(--accent-fill) var(--pct, 50%), var(--fill-pressed) var(--pct, 50%));
+  background: linear-gradient(to right, var(--accent) var(--pct, 50%), var(--fill-pressed) var(--pct, 50%));
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -314,7 +314,7 @@ input[type="range"]::-webkit-slider-thumb {
   box-shadow: var(--shadow-thumb);
 }
 input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--fill-pressed); }
-input[type="range"]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent-fill); }
+input[type="range"]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
 input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #fff; box-shadow: var(--shadow-thumb); }
 
 /* ---------- tab bar ---------- */

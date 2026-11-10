@@ -1,167 +1,191 @@
-// Circuit editor: name, timing settings, the "same length for every exercise?" toggle with
-// per-exercise times, add/reorder/remove exercises, live total duration, start or save as template.
-// The working circuit is mutated in place so it survives the trip to the exercise picker and back.
+// Circuit editor: name, exercises (add, reorder, remove, optional time per exercise), timing
+// with steppers and direct entry, live total duration, start or save as template.
+// The working circuit is mutated in place so it survives the trip to the exercise picker.
+// The screen is built once; later changes touch only the part that changed, so the keyboard
+// focus and the scroll position stay where they are.
 
 import { plannedDurationS } from '../core/plan.js';
 import { formatDuration } from '../core/format.js';
 import { isUniform, moveItem, removeAt, applyUniformTimes, setExerciseWorkS } from '../core/circuit.js';
-import { esc, icon, mount, once } from './dom.js';
+import { esc, icon, mount, once, confirmSheet } from './dom.js';
 
+// [key, label, minimum, step of the plus/minus buttons]
 const SETTINGS_FIELDS = [
-  ['rounds', 'Runden', 1],
-  ['workS', 'Belastung (s)', 1],
-  ['restS', 'Pause (s)', 0],
-  ['roundRestS', 'Rundenpause (s)', 0],
-  ['prepS', 'Vorlauf (s)', 0],
-  ['warmupS', 'Aufwärmen (s)', 0],
-  ['cooldownS', 'Cool-down (s)', 0],
+  ['rounds', 'Runden', 1, 1],
+  ['workS', 'Belastung', 1, 5],
+  ['restS', 'Pause', 0, 5],
+  ['roundRestS', 'Rundenpause', 0, 15],
+  ['prepS', 'Vorlauf', 0, 5],
+  ['warmupS', 'Aufwärmen', 0, 15],
+  ['cooldownS', 'Cool-down', 0, 15],
 ];
+const MAX_VALUE = 5999;
 
 export function showEditor(root, { circuit, isExisting = false, nav = 'push', onAddExercise, onRun, onSave, onDelete, onShare, onBack }) {
   if (circuit.uniformTime === undefined) circuit.uniformTime = isUniform(circuit);
-  const screen = mount(root, '', { nav });
-  // a second tap while saving, sharing or deleting is still running must not repeat it
-  const save = once(() => onSave(circuit));
-  const share = once(() => onShare(circuit));
-  const deleteCircuit = once(() => onDelete(circuit));
 
-  function settingField([key, label, min]) {
-    return `
-      <label class="field">
-        <span>${label}</span>
-        <input type="number" inputmode="numeric" min="${min}" max="5999" data-setting="${key}" value="${esc(circuit.settings[key])}">
-      </label>`;
-  }
+  const settingCell = ([key, label, min, step]) => `
+    <div class="cell stepper-cell">
+      <span class="cell-label">${label}${key === 'rounds' ? '' : '<span class="cell-hint">Sekunden</span>'}</span>
+      <span class="stepper">
+        <button class="step-btn" data-step="${-step}" data-for="${key}" aria-label="${label} verringern">${icon('minus')}</button>
+        <input class="num" type="number" inputmode="numeric" min="${min}" max="${MAX_VALUE}" data-setting="${key}" value="${esc(circuit.settings[key])}" aria-label="${label}">
+        <button class="step-btn" data-step="${step}" data-for="${key}" aria-label="${label} erhöhen">${icon('plus')}</button>
+      </span>
+    </div>`;
 
   function exerciseItem(e, i, last) {
     const time = circuit.uniformTime
       ? ''
-      : `<label class="edit-ex-time"><input type="number" inputmode="numeric" min="1" max="5999" data-time="${i}" value="${esc(e.workS)}" aria-label="Belastung ${esc(e.name)}"> s</label>`;
+      : `<label class="edit-ex-time"><input class="num" type="number" inputmode="numeric" min="1" max="${MAX_VALUE}" data-time="${i}" value="${esc(e.workS)}" aria-label="Belastung ${esc(e.name)} in Sekunden"><span>s</span></label>`;
     return `
-      <li class="edit-ex">
-        <span class="edit-ex-name">${esc(e.name)}${e.sides ? '<span class="ex-tag">L/R</span>' : ''}</span>
-        ${time}
-        <span class="edit-ex-ctrl">
-          <button class="icon-btn" data-move="up" data-index="${i}" ${i === 0 ? 'disabled' : ''} aria-label="${esc(e.name)} nach oben">${icon('arrowUp')}</button>
-          <button class="icon-btn" data-move="down" data-index="${i}" ${last ? 'disabled' : ''} aria-label="${esc(e.name)} nach unten">${icon('arrowDown')}</button>
-          <button class="icon-btn danger-text" data-remove="${i}" aria-label="${esc(e.name)} entfernen">${icon('trash')}</button>
+      <li class="cell edit-ex">
+        <span class="edit-ex-name"><span class="edit-ex-no num">${i + 1}</span><span>${esc(e.name)}</span>${e.sides ? '<span class="tag">L/R</span>' : ''}</span>
+        <span class="edit-ex-tools">
+          ${time}
+          <button class="tool-btn" data-move="up" data-index="${i}" ${i === 0 ? 'disabled' : ''} aria-label="${esc(e.name)} nach oben">${icon('arrowUp')}</button>
+          <button class="tool-btn" data-move="down" data-index="${i}" ${last ? 'disabled' : ''} aria-label="${esc(e.name)} nach unten">${icon('arrowDown')}</button>
+          <button class="tool-btn danger" data-remove="${i}" aria-label="${esc(e.name)} entfernen">${icon('trash')}</button>
         </span>
       </li>`;
   }
 
-  function render() {
-    const has = circuit.exercises.length > 0;
-    screen.innerHTML = `
-      <main class="page has-navbar" data-screen="editor">
-        <header class="navbar">
-          <button class="nav-btn" data-action="back">${icon('chevronLeft')}Zurück</button>
-          <h1>${isExisting ? 'Zirkel bearbeiten' : 'Neuer Zirkel'}</h1>
-          <span></span>
-        </header>
+  const screen = mount(root, `
+    <main class="page has-navbar" data-screen="editor">
+      <header class="navbar">
+        <button class="nav-btn" data-action="back">${icon('chevronLeft')}Zurück</button>
+        <h1>${isExisting ? 'Zirkel bearbeiten' : 'Neuer Zirkel'}</h1>
+        <button class="nav-btn end" data-action="share" aria-label="Zirkel teilen">${icon('share')}</button>
+      </header>
 
-        <label class="field edit-name">
-          <span>Name</span>
-          <input type="text" data-el="name" maxlength="60" value="${esc(circuit.name)}" placeholder="Mein Zirkel" enterkeyhint="done">
+      <div class="group">
+        <label class="cell">
+          <span class="cell-label fixed">Name</span>
+          <input class="cell-input" type="text" data-el="name" maxlength="60" value="${esc(circuit.name)}" placeholder="Mein Zirkel" enterkeyhint="done" autocomplete="off">
         </label>
-
-        <div class="card edit-duration-card">
-          <span>Voraussichtliche Dauer</span>
-          <strong class="edit-duration" data-el="duration"></strong>
+        <div class="cell">
+          <span class="cell-label">Voraussichtliche Dauer</span>
+          <strong class="edit-duration num" data-el="duration"></strong>
         </div>
+      </div>
 
-        <h2>Übungen</h2>
-        ${has ? `<ol class="edit-ex-list">${circuit.exercises.map((e, i) => exerciseItem(e, i, i === circuit.exercises.length - 1)).join('')}</ol>`
-              : '<p class="lib-empty">Noch keine Übung. Unten hinzufügen.</p>'}
-        <button class="btn tinted" data-action="add">${icon('plus')}Übung hinzufügen</button>
+      <h2 class="group-title">Übungen</h2>
+      <div class="group">
+        <ol class="edit-ex-list" data-el="list"></ol>
+        <button class="cell accent" data-action="add">${icon('plus')}Übung hinzufügen</button>
+      </div>
+      <p class="group-foot" data-el="list-hint" hidden></p>
 
-        <label class="row edit-uniform">
-          <span class="row-label">Jede Übung gleich lang<span class="row-hint">${circuit.uniformTime ? 'Belastung oben gilt für alle' : 'pro Übung einstellbar'}</span></span>
+      <div class="group group-gap">
+        <label class="cell">
+          <span class="cell-label">Jede Übung gleich lang<span class="cell-hint" data-el="uniform-hint"></span></span>
           <span class="switch"><input type="checkbox" data-el="uniform" ${circuit.uniformTime ? 'checked' : ''}><span></span></span>
         </label>
+      </div>
 
-        <h2>Einstellungen</h2>
-        <div class="card"><div class="field-grid edit-settings">${SETTINGS_FIELDS.map(settingField).join('')}</div></div>
+      <h2 class="group-title">Zeiten</h2>
+      <div class="group">${SETTINGS_FIELDS.map(settingCell).join('')}</div>
 
-        <div class="edit-actions">
-          <button class="btn primary" data-action="start" ${has ? '' : 'disabled'}>Starten</button>
-          <button class="btn" data-action="save" ${has ? '' : 'disabled'}>${isExisting ? 'Speichern' : 'Als Vorlage speichern'}</button>
-          <button class="btn ghost" data-action="share" ${has ? '' : 'disabled'}>Teilen</button>
-          ${has ? '' : '<p class="mode-hint">Mindestens eine Übung hinzufügen.</p>'}
-        </div>
+      <div class="edit-actions">
+        <button class="btn primary" data-action="start">${icon('play')}Starten</button>
+        <button class="btn" data-action="save">${isExisting ? 'Speichern' : 'Als Vorlage speichern'}</button>
+        ${isExisting ? '<button class="btn ghost danger-text" data-action="delete">Zirkel löschen</button>' : ''}
+      </div>
+    </main>`, { nav });
 
-        ${isExisting ? `
-        <div class="edit-delete">
-          <button class="btn ghost danger-text" data-action="delete">Zirkel löschen</button>
-          <div class="lib-del-confirm" data-el="del-confirm" hidden>
-            <p>Diesen Zirkel wirklich löschen?</p>
-            <button class="btn danger" data-action="delete-confirm">Ja, löschen</button>
-            <button class="btn ghost" data-action="delete-cancel">Abbrechen</button>
-          </div>
-        </div>` : ''}
-      </main>`;
-    updateDuration();
-    wire();
-  }
+  const $ = (sel) => screen.querySelector(sel);
+  const list = $('[data-el="list"]');
+
+  // a second tap while saving, sharing or deleting is still running must not repeat it
+  const save = once(() => onSave(circuit));
+  const share = once(() => onShare(circuit));
+  const askDelete = once(async () => {
+    const ok = await confirmSheet({
+      title: 'Zirkel löschen?',
+      message: `„${circuit.name || 'Mein Zirkel'}" wird entfernt. Der Verlauf bleibt erhalten.`,
+      confirmLabel: 'Zirkel löschen',
+    });
+    if (ok) await onDelete(circuit);
+  });
 
   function updateDuration() {
-    screen.querySelector('[data-el="duration"]').textContent = formatDuration(plannedDurationS(circuit.settings, circuit.exercises));
+    $('[data-el="duration"]').textContent = formatDuration(plannedDurationS(circuit.settings, circuit.exercises));
   }
 
-  function wire() {
-    screen.querySelector('[data-el="name"]').addEventListener('input', (e) => {
-      circuit.name = e.target.value;
-    });
-
-    screen.querySelectorAll('[data-setting]').forEach((input) =>
-      input.addEventListener('input', (e) => {
-        const value = e.target.value === '' ? 0 : Number(e.target.value);
-        if (Number.isFinite(value)) circuit.settings[e.target.dataset.setting] = value;
-        updateDuration();
-      }),
-    );
-
-    screen.querySelectorAll('[data-time]').forEach((input) =>
-      input.addEventListener('input', (e) => {
-        if (e.target.value === '') return; // wait until a number is typed
-        circuit.exercises = setExerciseWorkS(circuit.exercises, Number(e.target.dataset.time), e.target.value);
-        updateDuration();
-      }),
-    );
-
-    screen.querySelector('[data-el="uniform"]').addEventListener('change', (e) => {
-      circuit.uniformTime = e.target.checked;
-      circuit.exercises = applyUniformTimes(circuit.exercises, circuit.uniformTime, circuit.settings.workS);
-      render();
-    });
-
-    // Delegated to the fresh <main>, not the persistent #app, so it dies with this render
-    // (and when the screen is left) instead of stacking.
-    screen.querySelector('main').addEventListener('click', onClick);
+  // Rebuilds only the exercise rows and what depends on their number.
+  function renderList() {
+    const n = circuit.exercises.length;
+    list.innerHTML = circuit.exercises.map((e, i) => exerciseItem(e, i, i === n - 1)).join('');
+    const hint = $('[data-el="list-hint"]');
+    hint.hidden = n > 0;
+    hint.textContent = 'Mindestens eine Übung hinzufügen, dann lässt sich der Zirkel starten und speichern.';
+    $('[data-el="uniform-hint"]').textContent = circuit.uniformTime ? 'Die Belastung unten gilt für alle.' : 'Zeit pro Übung oben in der Liste.';
+    for (const action of ['start', 'save', 'share']) $(`[data-action="${action}"]`).disabled = n === 0;
+    updateDuration();
   }
 
-  function onClick(event) {
+  function setSetting(key, value) {
+    const [, , min] = SETTINGS_FIELDS.find(([k]) => k === key);
+    const clamped = Math.min(MAX_VALUE, Math.max(min, Math.round(Number(value) || 0)));
+    circuit.settings[key] = clamped;
+    updateDuration();
+    return clamped;
+  }
+
+  $('[data-el="name"]').addEventListener('input', (e) => {
+    circuit.name = e.target.value;
+  });
+
+  screen.querySelectorAll('[data-setting]').forEach((input) => {
+    input.addEventListener('input', () => {
+      if (input.value === '') return; // wait until a number is typed
+      const value = Number(input.value);
+      if (Number.isFinite(value)) setSetting(input.dataset.setting, value);
+    });
+    // leaving the field shows the value that really applies (empty or out of range is corrected)
+    input.addEventListener('blur', () => {
+      input.value = setSetting(input.dataset.setting, input.value);
+    });
+  });
+
+  list.addEventListener('input', (e) => {
+    if (!e.target.matches('[data-time]') || e.target.value === '') return;
+    circuit.exercises = setExerciseWorkS(circuit.exercises, Number(e.target.dataset.time), e.target.value);
+    updateDuration();
+  });
+
+  $('[data-el="uniform"]').addEventListener('change', (e) => {
+    circuit.uniformTime = e.target.checked;
+    circuit.exercises = applyUniformTimes(circuit.exercises, circuit.uniformTime, circuit.settings.workS);
+    renderList();
+  });
+
+  screen.querySelector('main').addEventListener('click', (event) => {
     const btn = event.target.closest('button');
-    if (!btn) return;
-    const { action, move, index, remove } = btn.dataset;
+    if (!btn || btn.disabled) return;
+    const { action, move, index, step } = btn.dataset;
     if (action === 'back') onBack();
     else if (action === 'add') onAddExercise();
     else if (action === 'start') onRun(circuit);
     else if (action === 'save') save();
     else if (action === 'share') share();
-    else if (action === 'delete') screen.querySelector('[data-el="del-confirm"]').hidden = false;
-    else if (action === 'delete-cancel') screen.querySelector('[data-el="del-confirm"]').hidden = true;
-    else if (action === 'delete-confirm') deleteCircuit();
-    else if (move) {
+    else if (action === 'delete') askDelete();
+    else if (step) {
+      const input = $(`[data-setting="${btn.dataset.for}"]`);
+      input.value = setSetting(btn.dataset.for, (Number(input.value) || 0) + Number(step));
+    } else if (move) {
+      const to = Number(index) + (move === 'up' ? -1 : 1);
       circuit.exercises = moveItem(circuit.exercises, Number(index), move === 'up' ? -1 : 1);
-      render();
-    } else if (remove !== undefined) {
-      circuit.exercises = removeAt(circuit.exercises, Number(remove));
-      render();
+      renderList();
+      // keep the focus on the moved row, so it can be moved again right away
+      const again = list.querySelector(`[data-move="${move}"][data-index="${to}"]:not([disabled])`)
+        || list.querySelector(`[data-index="${to}"]:not([disabled])`);
+      again?.focus({ preventScroll: true });
+    } else if (btn.dataset.remove !== undefined) {
+      circuit.exercises = removeAt(circuit.exercises, Number(btn.dataset.remove));
+      renderList();
     }
-  }
+  });
 
-  render();
-  const heading = screen.querySelector('h1');
-  heading.tabIndex = -1;
-  heading.focus({ preventScroll: true });
+  renderList();
 }

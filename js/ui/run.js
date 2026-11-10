@@ -10,7 +10,7 @@ import { formatElapsed, formatRemaining } from '../core/format.js';
 import * as audio from '../platform/audio.js';
 import * as speech from '../platform/speech.js';
 import * as wake from '../platform/wakelock.js';
-import { setText, icon, mount } from './dom.js';
+import { setText, icon, mount, confirmSheet } from './dom.js';
 
 const START_SIGNAL = {
   [PHASE.PREP]: null, // prep starts with the Start tap itself
@@ -21,35 +21,36 @@ const START_SIGNAL = {
   [PHASE.COOLDOWN]: 'restStart',
 };
 
+// The ring shows the progress of the current phase; pathLength="1" makes its dash values plain
+// fractions (0 = empty, 1 = full).
 const TEMPLATE = `
   <section class="run" data-phase="prep">
     <header class="run-top">
       <button class="run-abort" data-action="abort">Abbrechen</button>
-      <div class="run-elapsed" data-el="elapsed" aria-label="Verstrichene Zeit">0:00</div>
-      <div class="run-pos" data-el="pos"></div>
+      <div class="run-elapsed num" data-el="elapsed" aria-label="Verstrichene Zeit">0:00</div>
+      <div class="run-pos num" data-el="pos"></div>
     </header>
-    <div class="run-progress"><div class="run-progress-bar" data-el="bar"></div></div>
+    <div class="run-progress" aria-hidden="true"><div class="run-progress-bar" data-el="bar"></div></div>
     <div class="run-main">
-      <div class="run-phase" data-el="phase"></div>
-      <div class="run-paused" data-el="paused" hidden>Pausiert</div>
-      <div class="run-time" data-el="time" role="timer" aria-live="off"></div>
+      <div class="run-phase"><span data-el="phase"></span><span class="run-paused" data-el="paused" hidden>Pausiert</span></div>
+      <div class="run-ring">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="ring-track" cx="50" cy="50" r="45" pathLength="1"/>
+          <circle class="ring-fill" cx="50" cy="50" r="45" pathLength="1" data-el="ring"/>
+        </svg>
+        <div class="run-time num" data-el="time" role="timer" aria-live="off"></div>
+      </div>
       <div class="run-label" data-el="label"></div>
       <div class="run-exercise" data-el="exercise"></div>
       <div class="run-side" data-el="side" hidden></div>
     </div>
     <button class="run-audio-hint" data-action="audio" hidden>Ton unterbrochen. Hier tippen.</button>
     <nav class="run-controls">
+      <button data-action="back" aria-label="Zurück">${icon('back')}</button>
       <button class="run-toggle" data-action="toggle"></button>
-      <button data-action="back" aria-label="Zurück">${icon('back')}Zurück</button>
-      <button data-action="skip" aria-label="Überspringen">${icon('skip')}Überspringen</button>
-      <button data-action="add" aria-label="10 Sekunden mehr"><span class="run-add">+10</span>Sek.</button>
+      <button data-action="skip" aria-label="Überspringen">${icon('skip')}</button>
+      <button class="run-add" data-action="add" aria-label="10 Sekunden mehr">+10</button>
     </nav>
-    <dialog class="confirm" data-el="dialog">
-      <h2>Training abbrechen?</h2>
-      <p>Danach siehst du, wie weit du gekommen bist.</p>
-      <button class="btn danger" data-action="abort-confirm">Abbrechen</button>
-      <button class="btn" data-action="abort-cancel">Weiter trainieren</button>
-    </dialog>
   </section>`;
 
 export function showRun(root, { circuit, settings, onEnd }) {
@@ -74,6 +75,7 @@ export function showRun(root, { circuit, settings, onEnd }) {
   let ended = false;
   let lastToggleLabel = '';
   let lastTap = { action: '', at: 0 };
+  let drawnPhase = -1;
 
   // ---------- sound ----------
 
@@ -141,7 +143,8 @@ export function showRun(root, { circuit, settings, onEnd }) {
 
     const toggleLabel = paused ? 'resume' : 'pause';
     if (toggleLabel !== lastToggleLabel) {
-      toggleButton.innerHTML = paused ? `${icon('play')}Fortsetzen` : `${icon('pause')}Pause`;
+      toggleButton.innerHTML = icon(paused ? 'play' : 'pause');
+      toggleButton.setAttribute('aria-label', paused ? 'Fortsetzen' : 'Pause');
       lastToggleLabel = toggleLabel;
     }
   }
@@ -149,16 +152,24 @@ export function showRun(root, { circuit, settings, onEnd }) {
   // The bar runs on the compositor: each tick it gets the position it should have reached by
   // the next tick and a linear transition of exactly that length. `jump` (tap, pause, return
   // from the background) puts it at the current position first, without animating.
+  // The ring's stroke cannot be moved by the compositor; animated continuously it would cost a
+  // style recalculation every frame. So it steps once per tick with a short ease, like the
+  // second hand of a watch: smooth enough to read, about a fifth of the frames.
   function drawBar(v, waitMs, jump) {
-    const at = (ms) => `scaleX(${Math.min(1, v.totalMs ? ms / v.totalMs : 0).toFixed(5)})`;
-    if (jump) {
+    const bar = (ms) => `scaleX(${Math.min(1, v.totalMs ? ms / v.totalMs : 0).toFixed(5)})`;
+    const ring = (ms) => (1 - Math.min(1, v.phaseDurationMs ? ms / v.phaseDurationMs : 0)).toFixed(4);
+    const newPhase = v.phaseIndex !== drawnPhase;
+    if (jump || newPhase) {
       els.bar.style.transition = 'none';
-      els.bar.style.transform = at(v.positionMs);
-      void els.bar.offsetWidth; // commit the jump before the next transition starts
+      els.bar.style.transform = bar(v.positionMs);
+      void els.bar.getBoundingClientRect(); // commit the jump before the next transition starts
+      drawnPhase = v.phaseIndex;
     }
+    els.ring.style.transition = jump || newPhase ? 'none' : 'stroke-dashoffset 220ms var(--ease-out)';
+    els.ring.style.strokeDashoffset = ring(v.phaseElapsedMs);
     if (waitMs > 0) {
       els.bar.style.transition = `transform ${waitMs}ms linear`;
-      els.bar.style.transform = at(v.positionMs + waitMs);
+      els.bar.style.transform = bar(v.positionMs + waitMs);
     }
   }
 
@@ -213,7 +224,7 @@ export function showRun(root, { circuit, settings, onEnd }) {
 
   // A second tap on the same control within 350 ms is treated as an accident (wet fingers):
   // it would pause and resume at once, or skip two phases. "+10 s" may be tapped repeatedly.
-  const GUARDED = new Set(['toggle', 'back', 'skip', 'abort-confirm']);
+  const GUARDED = new Set(['toggle', 'back', 'skip', 'abort']);
   function isAccidentalRepeat(action) {
     const now = Date.now();
     const repeat = GUARDED.has(action) && lastTap.action === action && now - lastTap.at < 350;
@@ -228,18 +239,30 @@ export function showRun(root, { circuit, settings, onEnd }) {
     else if (action === 'back') act(back);
     else if (action === 'skip') act(skip);
     else if (action === 'add') act(addTime);
-    else if (action === 'abort') els.dialog.showModal();
-    else if (action === 'abort-cancel') els.dialog.close();
-    else if (action === 'abort-confirm') {
-      els.dialog.close();
-      state = abort(state, Date.now());
-      speech.cancel();
-      finish();
-    } else if (action === 'audio') {
+    else if (action === 'abort') askAbort();
+    else if (action === 'audio') {
       audio.unlock();
       audioHint.hidden = true;
     }
   });
+
+  // The training keeps running while the sheet is open; "Abbrechen" ends it where it is.
+  let asking = false;
+  async function askAbort() {
+    if (asking) return;
+    asking = true;
+    const ok = await confirmSheet({
+      title: 'Training abbrechen?',
+      message: 'Es wird im Verlauf als abgebrochen gespeichert.',
+      confirmLabel: 'Training abbrechen',
+      cancelLabel: 'Weiter trainieren',
+    });
+    asking = false;
+    if (!ok || ended) return;
+    state = abort(state, Date.now());
+    speech.cancel();
+    finish();
+  }
 
   // ---------- interruptions: app switch, call, Siri ----------
 

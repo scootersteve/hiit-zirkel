@@ -32,3 +32,17 @@ Am schnellsten mit dem Zirkel **"Schnelltest (alle Signale)"** (2:33 min).
 - Installation über "Zum Home-Bildschirm" mit eigenem Symbol
 - App startet im Flugmodus
 - Hinweis "Neue Version verfügbar" nach einem Update
+
+## Design 0.6.0 (Branch design/apple-look, noch nicht veröffentlicht)
+
+| # | Prüfpunkt | Erwartung |
+|---|---|---|
+| 1 | Hell/Dunkel: iPhone in Einstellungen → Anzeige umschalten | App folgt sofort, solange "Automatisch" gewählt ist |
+| 2 | Statusleiste (Uhr, Akku) im hellen Modus als Home-Bildschirm-App | lesbar, nicht weiß auf hellem Grund |
+| 3 | Schriftgröße: Einstellungen → Anzeige → Textgröße groß | Texte wachsen mit, nichts wird abgeschnitten (Tab-Leiste bleibt bewusst gleich groß) |
+| 4 | Tastatur: Name im Editor, Zahl bei "Belastung", Suche in Übungen | Feld bleibt sichtbar, Seite zoomt nicht |
+| 5 | Tippen auf Knöpfe | jeder Knopf reagiert sichtbar beim Antippen, kein grauer Blitz |
+| 6 | Wischen von links (Zurück-Geste) | erwarteter Hinweis: in der installierten App gibt es keine Wischgeste, Zurück nur über die Taste |
+| 7 | Ring im Training | bewegt sich einmal pro Sekunde weich weiter, Restzeit aus 2 m lesbar |
+| 8 | Blur der Leisten (Tab-Leiste, obere Leiste im Editor) | kein Ruckeln beim Scrollen auf dem iPhone 13 |
+
