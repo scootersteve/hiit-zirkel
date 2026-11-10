@@ -16,10 +16,10 @@ test('parseBackup: gültig durch, falsches Format/Version werfen', () => {
   const good = buildBackup({ templates: [{ id: 't-1' }] });
   assert.deepEqual(parseBackup(good).templates, [{ id: 't-1' }]);
   assert.deepEqual(parseBackup(JSON.stringify(good)).templates, [{ id: 't-1' }]); // auch als String
-  assert.throws(() => parseBackup({ format: 'anders', version: 1 }), /Keine Zirkel-Dojo-Sicherung/);
+  assert.throws(() => parseBackup({ format: 'anders', version: 1 }), /Keine Circle-Champ-Sicherung/);
   assert.throws(() => parseBackup({ format: BACKUP_FORMAT, version: 2 }), /Version/);
   assert.throws(() => parseBackup('kein json {'), /JSON/);
-  assert.throws(() => parseBackup(null), /Keine Zirkel-Dojo-Sicherung/);
+  assert.throws(() => parseBackup(null), /Keine Circle-Champ-Sicherung/);
 });
 
 test('parseBackup: fehlende/falsche Abschnitte werden zu leeren Defaults', () => {

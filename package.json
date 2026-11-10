@@ -1,7 +1,7 @@
 {
   "name": "hiit-zirkel",
   "private": true,
-  "description": "Zirkel Dojo: HIIT-Zirkeltimer als PWA. Keine Abhängigkeiten, Node nur für Tests und Testserver.",
+  "description": "Circle Champ: HIIT-Zirkeltimer als PWA. Keine Abhängigkeiten, Node nur für Tests und Testserver.",
   "type": "module",
   "scripts": {
     "test": "node --test",

@@ -1,4 +1,4 @@
-/* Zirkel Dojo – design tokens. Everything else reads only these, so a theme can swap them.
+/* Circle Champ – design tokens. Everything else reads only these, so a theme can swap them.
    Colours use light-dark(): one definition per token, the used colour scheme picks the side.
    The scheme follows the device (data-theme absent or "auto") or is forced by the setting. */
 

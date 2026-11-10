@@ -211,7 +211,7 @@ async function shareCircuit(circuit) {
   const url = `${location.origin}${location.pathname}#share=${encodeCircuit(circuit)}`;
   if (navigator.share) {
     try {
-      await navigator.share({ title: 'Zirkel Dojo', text: `Zirkel „${circuit.name || 'Mein Zirkel'}"`, url });
+      await navigator.share({ title: 'Circle Champ', text: `Zirkel „${circuit.name || 'Mein Zirkel'}"`, url });
     } catch {
       /* user cancelled the share sheet */
     }

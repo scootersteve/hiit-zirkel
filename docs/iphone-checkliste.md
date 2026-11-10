@@ -59,3 +59,12 @@ Am schnellsten mit dem Zirkel **"Schnelltest (alle Signale)"** (2:33 min).
 | 6 | Einstellungen → Lizenzen und Quellen → Körpergrafik | Blatt mit dem MIT-Lizenztext, "Fertig" und Tippen daneben schließen |
 | 7 | Textgröße des iPhones groß stellen | Figur wird kleiner statt abgeschnitten, "Zurück" und Titel in der oberen Leiste überlappen nicht |
 | 8 | Flugmodus, App neu öffnen, Übung antippen | Grafik erscheint auch offline |
+
+## Neuer Name "Circle Champ" (ab 0.7.0)
+
+| # | Prüfpunkt | Erwartung |
+|---|---|---|
+| 1 | Nach dem Update: Startseite, Einstellungen unten, Teilen-Blatt | überall "Circle Champ", Zirkel, Verlauf und Einstellungen sind noch da |
+| 2 | Symbol auf dem Home-Bildschirm | heißt weiter "Zirkel Dojo": iOS übernimmt den Namen nur beim Hinzufügen. Für den neuen Namen: erst in der alten App Einstellungen → Sicherung herunterladen, dann Symbol löschen, Seite in Safari öffnen, neu "Zum Home-Bildschirm", Sicherung importieren |
+| 3 | Vor Punkt 2 prüfen | Ob die Daten das Löschen des Symbols überstehen, ist nicht getestet. Deshalb zuerst die Sicherung |
+| 4 | Alte Sicherungsdatei (zirkel-dojo-….json) importieren | funktioniert weiter, das Format ist gleich geblieben |

@@ -154,7 +154,7 @@ export function showSettings(root, { db, settings, nav = 'none', onSettingsChang
         </div>
       </div>
 
-      <p class="app-version">Zirkel Dojo ${esc(VERSION)}</p>
+      <p class="app-version">Circle Champ ${esc(VERSION)}</p>
     </main>`, { nav, tabs: true });
 
   const $ = (sel) => screen.querySelector(sel);
@@ -205,7 +205,7 @@ export function showSettings(root, { db, settings, nav = 'none', onSettingsChang
   const exportBackup = once(async () => {
     try {
       const backup = buildBackup(await db.collectData());
-      download(`zirkel-dojo-${today()}.json`, JSON.stringify(backup, null, 2));
+      download(`circle-champ-${today()}.json`, JSON.stringify(backup, null, 2));
       setStatus('Sicherung heruntergeladen.');
     } catch (err) {
       setStatus('Export fehlgeschlagen: ' + err.message, false);

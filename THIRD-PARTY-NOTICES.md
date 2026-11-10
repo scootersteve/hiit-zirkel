@@ -1,6 +1,6 @@
 # Fremde Bestandteile (Third-Party Notices)
 
-Zirkel Dojo steht unter der MIT-Lizenz (siehe `LICENSE`). Die folgenden Teile stammen aus
+Circle Champ steht unter der MIT-Lizenz (siehe `LICENSE`). Die folgenden Teile stammen aus
 anderen Projekten und behalten ihre eigene Lizenz.
 
 ## Körpergrafik: react-native-body-highlighter

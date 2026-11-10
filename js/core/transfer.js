@@ -32,7 +32,7 @@ export function parseBackup(input) {
       throw new Error('Datei ist kein gültiges JSON');
     }
   }
-  if (!data || typeof data !== 'object' || data.format !== BACKUP_FORMAT) throw new Error('Keine Zirkel-Dojo-Sicherung');
+  if (!data || typeof data !== 'object' || data.format !== BACKUP_FORMAT) throw new Error('Keine Circle-Champ-Sicherung');
   if (data.version !== BACKUP_VERSION) throw new Error(`Unbekannte Sicherungs-Version: ${data.version}`);
   return {
     customExercises: Array.isArray(data.customExercises) ? data.customExercises : [],

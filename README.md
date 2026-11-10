@@ -1,4 +1,4 @@
-# Zirkel Dojo
+# Circle Champ
 
 HIIT- und Zirkeltraining-Timer als Web-App (PWA) fürs iPhone. Kostenlos, ohne Konto, ohne Server. Alle Daten bleiben auf dem eigenen Gerät.
 

@@ -1,4 +1,4 @@
-# Plan Zirkel Dojo (freigegeben 09.10.2026)
+# Plan Circle Champ (freigegeben 09.10.2026, damals unter dem Namen Zirkel Dojo)
 
 Anforderungen und Quellen liegen in der Projektnotiz im privaten Vault. Hier steht nur, was für den Code gilt.
 
@@ -95,7 +95,7 @@ background, sound-roundDone, sound-end als Blob
 ## Getroffene Entscheidungen
 
 - Repo-Name `hiit-zirkel` bleibt fest (steckt in der URL). Der App-Name steht im Manifest und ist änderbar.
-- App-Name: Zirkel Dojo.
+- App-Name: Circle Champ (seit 10.11.2026, vorher Zirkel Dojo). Repo-Name, URL, Datenbankname `hiit-zirkel` und das Sicherungsformat `hiit-zirkel-backup` bleiben, damit vorhandene Daten und Sicherungen weiter passen.
 - Tests der Datenhaltung ohne Paket: Speicher-Schnittstelle mit IndexedDB- und In-Memory-Umsetzung.
 - Ton-Test mit `auto`, `playback`, `ambient`, `transient`, `transient-solo`, `<audio>`-Element, Sprachansage, jeweils im Safari-Tab und als Home-Bildschirm-App.
 - Lizenz eigener Code: MIT.

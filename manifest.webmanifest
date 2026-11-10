@@ -1,6 +1,6 @@
 {
-  "name": "Zirkel Dojo",
-  "short_name": "Zirkel Dojo",
+  "name": "Circle Champ",
+  "short_name": "Circle Champ",
   "description": "HIIT- und Zirkeltraining-Timer",
   "start_url": "./",
   "scope": "./",

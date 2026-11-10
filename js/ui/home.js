@@ -50,7 +50,7 @@ export function showHome(root, {
 
   const screen = mount(root, `
     <main class="page">
-      <header class="large-title"><h1>Zirkel Dojo</h1></header>
+      <header class="large-title"><h1>Circle Champ</h1></header>
 
       <h2 class="section-title">Meine Zirkel</h2>
       ${own}
