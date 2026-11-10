@@ -376,12 +376,19 @@ body.running { overflow: hidden; overscroll-behavior: none; }
 .run-phase { display: flex; align-items: center; gap: 10px; font-size: var(--t-title3); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
 .run-paused { padding: 3px 10px; border-radius: var(--r-full); background: rgb(0 0 0 / 0.28); font-size: var(--t-footnote); letter-spacing: 0.08em; }
 
-/* phase progress as a ring around the remaining time (Activity-ring style) */
+/* phase progress as a ring around the remaining time (Activity-ring style): two half rings,
+   each rotating inside a box that shows only its own half; the rotation runs on the compositor */
 .run-ring { position: relative; width: min(76vw, 42dvh, 340px); aspect-ratio: 1; margin: 6px 0; }
-.run-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); will-change: transform; } /* own layer: the ring step does not repaint the background */
-.run-ring circle { fill: none; stroke-width: 7; stroke-linecap: round; }
-.ring-track { stroke: rgb(255 255 255 / 0.22); }
-.ring-fill { stroke: var(--on-phase); stroke-dasharray: 1; stroke-dashoffset: 1; }
+.ring-track, .ring-cap { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ring-track circle { fill: none; stroke: rgb(255 255 255 / 0.22); stroke-width: 7; }
+.ring-cap circle { fill: var(--on-phase); }
+.ring-half { position: absolute; top: 0; bottom: 0; width: 50%; overflow: hidden; }
+.ring-half.right { right: 0; }
+.ring-half.left { left: 0; }
+.ring-half svg { position: absolute; top: 0; width: 200%; height: 100%; transform: rotate(0deg); will-change: transform; }
+.ring-half.right svg { right: 0; }
+.ring-half.left svg { left: 0; }
+.ring-half path { fill: none; stroke: var(--on-phase); stroke-width: 7; stroke-linecap: round; }
 .run-time {
   position: absolute;
   inset: 0;

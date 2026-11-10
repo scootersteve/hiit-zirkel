@@ -21,8 +21,9 @@ const START_SIGNAL = {
   [PHASE.COOLDOWN]: 'restStart',
 };
 
-// The ring shows the progress of the current phase; pathLength="1" makes its dash values plain
-// fractions (0 = empty, 1 = full).
+// The ring shows the progress of the current phase. It is built from two half rings that each
+// rotate inside a clipping box (right half first, then left), so the browser can move it on the
+// compositor like the bar: smooth, without redrawing the page. A dot marks the start at 12 o'clock.
 const TEMPLATE = `
   <section class="run" data-phase="prep">
     <header class="run-top">
@@ -34,10 +35,10 @@ const TEMPLATE = `
     <div class="run-main">
       <div class="run-phase"><span data-el="phase"></span><span class="run-paused" data-el="paused" hidden>Pausiert</span></div>
       <div class="run-ring">
-        <svg viewBox="0 0 100 100" aria-hidden="true">
-          <circle class="ring-track" cx="50" cy="50" r="45" pathLength="1"/>
-          <circle class="ring-fill" cx="50" cy="50" r="45" pathLength="1" data-el="ring"/>
-        </svg>
+        <svg class="ring-track" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="45"/></svg>
+        <div class="ring-half right" aria-hidden="true"><svg viewBox="0 0 100 100" data-el="ringA"><path d="M50 5A45 45 0 0 0 50 95"/></svg></div>
+        <div class="ring-half left" aria-hidden="true"><svg viewBox="0 0 100 100" data-el="ringB"><path d="M50 5A45 45 0 0 1 50 95"/></svg></div>
+        <svg class="ring-cap" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="5" r="3.5"/></svg>
         <div class="run-time num" data-el="time" role="timer" aria-live="off"></div>
       </div>
       <div class="run-label" data-el="label"></div>
@@ -152,25 +153,38 @@ export function showRun(root, { circuit, settings, onEnd }) {
   // The bar runs on the compositor: each tick it gets the position it should have reached by
   // the next tick and a linear transition of exactly that length. `jump` (tap, pause, return
   // from the background) puts it at the current position first, without animating.
-  // The ring's stroke cannot be moved by the compositor; animated continuously it would cost a
-  // style recalculation every frame. So it steps once per tick with a short ease, like the
-  // second hand of a watch: smooth enough to read, about a fifth of the frames.
+  // The ring works the same way: half A turns 0 to 180 degrees in the first half of the phase,
+  // half B in the second. schedule() also wakes at the halfway point, so a transition never
+  // spans both halves.
   function drawBar(v, waitMs, jump) {
     const bar = (ms) => `scaleX(${Math.min(1, v.totalMs ? ms / v.totalMs : 0).toFixed(5)})`;
-    const ring = (ms) => (1 - Math.min(1, v.phaseDurationMs ? ms / v.phaseDurationMs : 0)).toFixed(4);
-    const newPhase = v.phaseIndex !== drawnPhase;
-    if (jump || newPhase) {
-      els.bar.style.transition = 'none';
-      els.bar.style.transform = bar(v.positionMs);
+    const p = (ms) => Math.min(1, Math.max(0, v.phaseDurationMs ? ms / v.phaseDurationMs : 0));
+    const halfA = (ms) => `rotate(${(Math.min(p(ms), 0.5) * 360).toFixed(2)}deg)`;
+    const halfB = (ms) => `rotate(${(Math.max(p(ms) - 0.5, 0) * 360).toFixed(2)}deg)`;
+    const moving = [[els.bar, bar], [els.ringA, halfA], [els.ringB, halfB]];
+    if (jump || v.phaseIndex !== drawnPhase) {
+      for (const [el, at] of moving) {
+        el.style.transition = 'none';
+        el.style.transform = at(el === els.bar ? v.positionMs : v.phaseElapsedMs);
+      }
       void els.bar.getBoundingClientRect(); // commit the jump before the next transition starts
       drawnPhase = v.phaseIndex;
     }
-    els.ring.style.transition = jump || newPhase ? 'none' : 'stroke-dashoffset 220ms var(--ease-out)';
-    els.ring.style.strokeDashoffset = ring(v.phaseElapsedMs);
+    // At rest, half B's round end would peek out at 6 o'clock: show it only from halfway on.
+    // (schedule wakes a few ms after the halfway point, so this flips exactly when B starts.)
+    els.ringB.style.visibility = p(v.phaseElapsedMs) >= 0.5 ? 'visible' : 'hidden';
     if (waitMs > 0) {
-      els.bar.style.transition = `transform ${waitMs}ms linear`;
-      els.bar.style.transform = bar(v.positionMs + waitMs);
+      for (const [el, at] of moving) {
+        el.style.transition = `transform ${waitMs}ms linear`;
+        el.style.transform = at(el === els.bar ? v.positionMs + waitMs : v.phaseElapsedMs + waitMs);
+      }
     }
+  }
+
+  // Next wake-up: the next visible change, or the ring's halfway point if that comes first.
+  function nextWait(v) {
+    const toHalf = v.phaseDurationMs / 2 - v.phaseElapsedMs;
+    return toHalf > 0 ? Math.min(msUntilNextChange(v), toHalf) : msUntilNextChange(v);
   }
 
   // ---------- loop ----------
@@ -196,7 +210,7 @@ export function showRun(root, { circuit, settings, onEnd }) {
     timerId = 0;
     if (ended) return;
     const running = v.status === STATUS.RUNNING && document.visibilityState === 'visible';
-    const wait = running ? msUntilNextChange(v) : 0;
+    const wait = running ? nextWait(v) : 0;
     drawBar(v, wait, jump);
     // +4 ms: a timer that fires a hair early would otherwise miss the boundary and spin.
     if (running) timerId = setTimeout(tick, wait + 4);
