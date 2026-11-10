@@ -13,6 +13,7 @@ import {
   historyFromResult,
 } from './core/circuit.js';
 import { encodeCircuit, decodeCircuit } from './core/transfer.js';
+import { combineExercises } from './core/library.js';
 import { installTouchBehaviour, toast } from './ui/dom.js';
 import { initTabBar, setTab } from './ui/tabbar.js';
 import { showHome } from './ui/home.js';
@@ -119,14 +120,17 @@ initTabBar(document.getElementById('tabbar'), (tab) => showTab(tab));
 
 // ---------- circuit editor (pushed) ----------
 
-function openEditor(working, isExisting, nav = 'push') {
-  navToken++;
+async function openEditor(working, isExisting, nav = 'push') {
+  const opened = ++navToken;
+  let custom = await safely(db.listCustomExercises(), []); // for the muscle overview
+  if (opened !== navToken) return;
   setArea(null);
   const show = (direction) =>
     showEditor(root, {
       circuit: working,
       isExisting,
       nav: direction,
+      library: combineExercises(custom),
       onAddExercise: openPicker,
       onRun: (c) => run(c, isExisting ? c.id : null),
       onSave: saveCircuit,
@@ -137,14 +141,19 @@ function openEditor(working, isExisting, nav = 'push') {
 
   async function openPicker() {
     const token = ++navToken;
-    const [custom, usage] = await Promise.all([safely(db.listCustomExercises(), []), safely(db.getExerciseUsage(), {})]);
+    const [list, usage] = await Promise.all([safely(db.listCustomExercises(), []), safely(db.getExerciseUsage(), {})]);
     if (token !== navToken) return;
+    custom = list;
     showLibrary(root, {
       db,
       custom,
       usage,
       nav: 'push',
-      onBack: () => show('pop'),
+      // an own exercise created in the picker must show up in the muscle overview
+      onBack: async () => {
+        custom = await safely(db.listCustomExercises(), custom);
+        if (token === navToken) show('pop');
+      },
       pick: (exercise) => {
         const snap = exerciseSnapshot(exercise);
         if (!working.uniformTime) snap.workS = working.settings.workS; // keep non-uniform consistent

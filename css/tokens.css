@@ -39,6 +39,14 @@
   --on-danger: light-dark(#ffffff, #1a0000);
   --danger-tint: light-dark(rgb(215 0 21 / 0.08), rgb(255 69 58 / 0.18));
 
+  /* ---- body graphic: resting body, then three steps of load (1 = secondary / little,
+     3 = main muscle / most). One hue, so the order also reads without colour vision. ---- */
+  --muscle-0: light-dark(#dedee3, #3a3a3c);
+  --muscle-1: light-dark(#f6b9ab, #84423a);
+  --muscle-2: light-dark(#ee7a64, #c75545);
+  --muscle-3: light-dark(#d63a25, #ff6b57);
+  --muscle-line: light-dark(#b4b4bb, #636366);
+
   /* ---- training phases: full-bleed, white text, identical in light and dark.
      Each phase is a soft top-to-bottom gradient (-top / -bottom); --phase-x is its middle. ---- */
   --phase-prep-top: #2f6ee6;      --phase-prep: #2160d8;      --phase-prep-bottom: #1a4fbd;

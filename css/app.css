@@ -232,6 +232,41 @@ dialog.form-sheet::backdrop { background: var(--scrim); }
 .form-body .group-title, .form-body .group-foot { margin-left: 0; margin-right: 0; }
 .form-delete { margin-top: 26px; }
 
+/* ---------- body graphic (front and back, regions filled by load level) ---------- */
+.body-fig { display: flex; justify-content: center; gap: 8%; height: var(--body-h, 15rem); }
+.body-side { flex: none; height: 100%; width: auto; aspect-ratio: 639 / 1264; }
+.bp { fill: var(--muscle-0); }
+.bp[data-l="1"] { fill: var(--muscle-1); }
+.bp[data-l="2"] { fill: var(--muscle-2); }
+.bp[data-l="3"] { fill: var(--muscle-3); }
+.body-line { fill: none; stroke: var(--muscle-line); stroke-width: 1.25; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.swatch { flex: none; width: 14px; height: 14px; border-radius: 4px; background: var(--muscle-0); }
+.swatch[data-l="1"] { background: var(--muscle-1); }
+.swatch[data-l="2"] { background: var(--muscle-2); }
+.swatch[data-l="3"] { background: var(--muscle-3); }
+
+/* exercise detail sheet */
+/* the detail sheet is only as tall as its content */
+dialog.form-sheet.fit { height: fit-content; max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 12px); }
+dialog.form-sheet.fit .form { height: auto; max-height: inherit; }
+.ex-detail-fig { --body-h: min(18rem, 40dvh); padding: 16px var(--gutter) 14px; }
+.muscle-cell { align-items: flex-start; }
+.muscle-cell .swatch { margin-top: 0.3em; }
+.muscle-cell .cell-label { flex: none; }
+.muscle-cell .cell-value { flex: 1; min-width: 0; text-align: right; overflow-wrap: anywhere; }
+
+/* circuit overview in the editor */
+/* figure and text side by side; the text drops below when it would get narrower than 8rem
+   (320 px wide phones, large text sizes) */
+.muscle-over { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 14px; padding: 14px var(--gutter); }
+.muscle-over .body-fig { --body-h: 9.5rem; flex: none; gap: 8px; }
+.muscle-info { flex: 1 1 8rem; min-width: 0; display: grid; gap: 3px; }
+.muscle-info h3 { font-size: var(--t-footnote); font-weight: 400; color: var(--text-2); }
+.muscle-info p { overflow-wrap: anywhere; }
+.muscle-top { font-weight: 600; }
+.muscle-also { font-size: var(--t-footnote); color: var(--text-2); }
+.muscle-scale { display: flex; align-items: center; gap: 5px; margin-top: 6px; font-size: var(--t-footnote); color: var(--text-2); }
+
 /* ---------- circuit editor ---------- */
 
 .edit-duration { font-size: var(--t-title3); font-weight: 700; }

@@ -3,7 +3,7 @@
 //  - picker (pushed from the circuit editor, `pick` given): tap a row to add it to the circuit,
 //    recently used exercises first, "Fertig" returns
 // Search is diacritic-insensitive; when it finds nothing, the search text can become an own
-// exercise in one tap. Muscles are shown as text; the body graphic follows later.
+// exercise in one tap. A built-in exercise opens a detail sheet with the body graphic.
 
 import { CATEGORIES, EQUIPMENT } from '../data/exercises.js';
 import { MUSCLES } from '../data/muscles.js';
@@ -15,6 +15,8 @@ import {
   updateCustomExercise,
   byName,
 } from '../core/library.js';
+import { exerciseLevels, LEVEL_MAIN, LEVEL_SECONDARY } from '../core/muscles.js';
+import { bodyFigure, muscleNames } from './body.js';
 import { esc, icon, mount, once, confirmSheet } from './dom.js';
 
 const options = (map, selected) =>
@@ -45,7 +47,7 @@ function exerciseRow(e, pickMode) {
   if (e.custom) {
     return `<button class="cell ex-row" data-edit="${esc(e.id)}" aria-label="${esc(e.name)} bearbeiten">${body}<span class="ex-chevron">${icon('chevronRight')}</span></button>`;
   }
-  return `<div class="cell ex-row">${body}</div>`;
+  return `<button class="cell ex-row" data-info="${esc(e.id)}" aria-label="${esc(e.name)}, Muskeln ansehen">${body}<span class="ex-chevron">${icon('chevronRight')}</span></button>`;
 }
 
 /**
@@ -189,9 +191,41 @@ export function showLibrary(root, { db, custom: initialCustom = [], usage = {}, 
       ev.preventDefault(); // Enter in the name field and "Sichern" both land here
       save();
     });
+    dialog.classList.remove('fit');
     dialog.showModal();
     if (!exercise) dialog.querySelector('[data-field="name"]').focus();
     updateDuplicateWarning();
+  }
+
+  // Read-only sheet for a built-in exercise: the figure, then the same facts as text.
+  function openDetail(e) {
+    editing = null;
+    const main = muscleNames(e.primaryMuscles);
+    const secondary = muscleNames(e.secondaryMuscles);
+    const label = `Körpergrafik. Hauptmuskeln: ${main || 'keine'}. Nebenmuskeln: ${secondary || 'keine'}.`;
+    dialog.innerHTML = `
+      <div class="form">
+        <header class="form-bar">
+          <span></span>
+          <h2>${esc(e.name)}</h2>
+          <button type="button" class="nav-btn end strong" data-action="cancel">Fertig</button>
+        </header>
+        <div class="form-body">
+          <div class="group">
+            <div class="ex-detail-fig">${bodyFigure(exerciseLevels(e), label)}</div>
+            <div class="cell muscle-cell"><span class="swatch" data-l="${LEVEL_MAIN}"></span><span class="cell-label">Hauptmuskeln</span><span class="cell-value">${esc(main || 'keine')}</span></div>
+            <div class="cell muscle-cell"><span class="swatch" data-l="${LEVEL_SECONDARY}"></span><span class="cell-label">Nebenmuskeln</span><span class="cell-value">${esc(secondary || 'keine')}</span></div>
+          </div>
+          <div class="group group-gap">
+            <div class="cell"><span class="cell-label">Kategorie</span><span class="cell-value">${esc(CATEGORIES[e.category])}</span></div>
+            <div class="cell"><span class="cell-label">Ausrüstung</span><span class="cell-value">${esc(EQUIPMENT[e.equipment])}</span></div>
+            <div class="cell"><span class="cell-label">Seitenwechsel</span><span class="cell-value">${e.sides ? 'ja, zur Halbzeit' : 'nein'}</span></div>
+          </div>
+        </div>
+      </div>`;
+    dialog.classList.add('fit');
+    dialog.showModal();
+    dialog.querySelector('[data-action="cancel"]').focus({ preventScroll: true });
   }
 
   function updateDuplicateWarning() {
@@ -278,12 +312,13 @@ export function showLibrary(root, { db, custom: initialCustom = [], usage = {}, 
   screen.querySelector('main').addEventListener('click', (event) => {
     const btn = event.target.closest('button');
     if (!btn) return;
-    const { action, edit, muscle, pick: pickId } = btn.dataset;
+    const { action, edit, info, muscle, pick: pickId } = btn.dataset;
     if (action === 'back') onBack();
     else if (action === 'add') openDialog(null);
     else if (action === 'add-query') openDialog(null, filter.query.trim());
     else if (pickId) pickExercise(pickId, btn);
     else if (edit) openDialog(custom.find((c) => c.id === edit));
+    else if (info) openDetail(combineExercises(custom).find((e) => e.id === info));
     else if (muscle) btn.setAttribute('aria-pressed', btn.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
     else if (action === 'cancel') closeDialog();
     else if (action === 'delete') askDelete();

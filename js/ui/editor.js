@@ -7,6 +7,8 @@
 import { plannedDurationS } from '../core/plan.js';
 import { formatDuration } from '../core/format.js';
 import { isUniform, moveItem, removeAt, applyUniformTimes, setExerciseWorkS } from '../core/circuit.js';
+import { circuitLoad } from '../core/muscles.js';
+import { bodyFigure, muscleNames } from './body.js';
 import { esc, icon, mount, once, confirmSheet } from './dom.js';
 
 // [key, label, minimum, step of the plus/minus buttons]
@@ -21,7 +23,7 @@ const SETTINGS_FIELDS = [
 ];
 const MAX_VALUE = 5999;
 
-export function showEditor(root, { circuit, isExisting = false, nav = 'push', onAddExercise, onRun, onSave, onDelete, onShare, onBack }) {
+export function showEditor(root, { circuit, isExisting = false, nav = 'push', library = [], onAddExercise, onRun, onSave, onDelete, onShare, onBack }) {
   if (circuit.uniformTime === undefined) circuit.uniformTime = isUniform(circuit);
 
   const settingCell = ([key, label, min, step]) => `
@@ -83,6 +85,8 @@ export function showEditor(root, { circuit, isExisting = false, nav = 'push', on
         </label>
       </div>
 
+      <div data-el="muscles" hidden></div>
+
       <h2 class="group-title">Zeiten</h2>
       <div class="group">${SETTINGS_FIELDS.map(settingCell).join('')}</div>
 
@@ -108,8 +112,40 @@ export function showEditor(root, { circuit, isExisting = false, nav = 'push', on
     if (ok) await onDelete(circuit);
   });
 
+  // Which regions the whole circuit loads, weighted by work time. Rebuilt only when the result
+  // changes, so typing a time does not redraw the figure on every key.
+  const byId = new Map(library.map((e) => [e.id, e]));
+  let musclesKey = '';
+  function updateMuscles() {
+    const { levels, ranked, unknown } = circuitLoad(circuit.exercises, circuit.settings, (id) => byId.get(id));
+    const key = JSON.stringify([levels, ranked, unknown]);
+    if (key === musclesKey) return;
+    musclesKey = key;
+    const box = $('[data-el="muscles"]');
+    box.hidden = ranked.length === 0;
+    if (box.hidden) return;
+    const top = ranked.filter((m) => levels[m] === 3);
+    const also = ranked.filter((m) => levels[m] < 3);
+    const label = `Körpergrafik des Zirkels. Schwerpunkt: ${muscleNames(top)}.${also.length ? ` Auch belastet: ${muscleNames(also)}.` : ''}`;
+    box.innerHTML = `
+      <h2 class="group-title">Muskeln</h2>
+      <div class="group">
+        <div class="muscle-over">
+          ${bodyFigure(levels, label)}
+          <div class="muscle-info">
+            <h3>Schwerpunkt</h3>
+            <p class="muscle-top">${esc(muscleNames(top))}</p>
+            ${also.length ? `<p class="muscle-also">Auch belastet: ${esc(muscleNames(also))}</p>` : ''}
+            <div class="muscle-scale" aria-hidden="true"><span>wenig</span><span class="swatch" data-l="1"></span><span class="swatch" data-l="2"></span><span class="swatch" data-l="3"></span><span>viel</span></div>
+          </div>
+        </div>
+      </div>
+      ${unknown ? `<p class="group-foot">${unknown === 1 ? 'Eine Übung ist' : `${unknown} Übungen sind`} nicht in deiner Übungsliste und fehlt in der Grafik.</p>` : ''}`;
+  }
+
   function updateDuration() {
     $('[data-el="duration"]').textContent = formatDuration(plannedDurationS(circuit.settings, circuit.exercises));
+    updateMuscles();
   }
 
   // Rebuilds only the exercise rows and what depends on their number.
