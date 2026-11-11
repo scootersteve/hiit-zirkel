@@ -121,6 +121,28 @@ for (const [look, tokens] of Object.entries(LOOKS)) {
     });
   }
 
+  // Own background picture in the training: picture → dark scrim → phase colour at --photo-tint.
+  // Whatever the picture is (pure white is the worst case, pure black the other end), the white
+  // text must stay readable on every phase.
+  test(`Eigenes Hintergrundbild lässt die Restzeit lesbar: ${look}`, () => {
+    const scrim = parse(tokens['--photo-scrim'].light);
+    const tint = Number(tokens['--photo-tint'].light.replace('%', '')) / 100;
+    assert.ok(tint > 0.5 && tint < 1, `--photo-tint: ${tint}`);
+    const text = parse(tokens['--on-phase'].light);
+    const failures = [];
+    for (const picture of [[255, 255, 255, 1], [0, 0, 0, 1], [128, 128, 128, 1]]) {
+      for (const p of PHASES) {
+        for (const stop of ['-top', '-bottom']) {
+          const [r, g, b] = parse(tokens[`--phase-${p}${stop}`].light);
+          const bg = over([r, g, b, tint], over(scrim, picture));
+          const ratio = contrast(text, bg);
+          if (ratio < 4.5) failures.push(`${p}${stop} über Bild ${picture.slice(0, 3).join('/')}: ${ratio.toFixed(2)}`);
+        }
+      }
+    }
+    assert.deepEqual(failures, []);
+  });
+
   // The phases must stay apart from each other too: from 2 m the colour tells work from rest.
   test(`Phasenfarben sind voneinander unterscheidbar: ${look}`, () => {
     const hue = ([r, g, b]) => {

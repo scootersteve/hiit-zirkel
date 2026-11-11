@@ -5,6 +5,7 @@
 import { openStore } from './store.js';
 import { makeId } from '../core/id.js';
 import { LOOK_IDS } from '../data/looks.js';
+import { MEDIA_KEYS } from '../core/media.js';
 
 // The app/sound/theme settings (kv: "settings"). Separate from the per-circuit timer settings
 // in js/core/plan.js. Loading always merges onto these, so a new field gets its default.
@@ -118,6 +119,21 @@ export function createDb(store) {
     },
     clearHistory() {
       return store.clear('history');
+    },
+
+    // Personal media (own picture, own sounds): device only. collectData below leaves them out
+    // on purpose, so they never reach a backup file.
+    async loadMedia() {
+      const out = {};
+      for (const key of MEDIA_KEYS) out[key] = (await store.get('media', key)) || null;
+      return out;
+    },
+    saveMedia(key, record) {
+      if (!MEDIA_KEYS.includes(key)) throw new Error(`Unbekannter Speicherplatz: ${key}`);
+      return store.put('media', record, key);
+    },
+    removeMedia(key) {
+      return store.delete('media', key);
     },
 
     async collectData() {

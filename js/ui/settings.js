@@ -8,9 +8,11 @@ import * as audio from '../platform/audio.js';
 import * as speech from '../platform/speech.js';
 import { applyTheme, applyLook } from '../platform/theme.js';
 import { LOOKS } from '../data/looks.js';
+import { MEDIA_SLOTS, MEDIA_KEYS, checkFile, checkSoundLength, makeMediaRecord, formatBytes } from '../core/media.js';
+import { photoToJpeg, recordUrl } from '../platform/media.js';
 import { EXERCISES } from '../data/exercises.js';
 import { BODY_GRAPHIC, DISPLAY_FONT } from '../data/licenses.js';
-import { esc, icon, mount, once } from './dom.js';
+import { esc, icon, mount, once, confirmSheet } from './dom.js';
 
 const THEME_OPTIONS = [['auto', 'Automatisch'], ['light', 'Hell'], ['dark', 'Dunkel']];
 const SOUND_OPTIONS = [['playback', 'Immer hörbar'], ['ambient', 'Musik-Modus']];
@@ -47,6 +49,25 @@ const lookCell = (look) => `
     <span class="cell-label">${look.name}<span class="cell-hint">${look.hint}</span></span>
     <span class="look-check" aria-hidden="true">${icon('check')}</span>
   </button>`;
+
+// One group per personal medium: what is stored, choose a file, (sound) listen, remove.
+const mediaGroup = (key) => {
+  const { kind, label } = MEDIA_SLOTS[key];
+  const image = kind === 'image';
+  return `
+  <div class="group media-group" data-media="${key}">
+    <div class="cell">
+      ${image ? '<span class="media-thumb" data-el="thumb" hidden></span>' : ''}
+      <span class="cell-label">${esc(label)}<span class="cell-hint" data-el="state"></span></span>
+    </div>
+    <label class="cell accent file-btn">
+      <span class="cell-label" data-el="pick"></span>
+      <input type="file" accept="${image ? 'image/*' : 'audio/*'}" data-media-input="${key}" aria-label="${esc(label)} wählen">
+    </label>
+    ${image ? '' : `<button class="cell accent" data-media-play="${key}" hidden>Anhören</button>`}
+    <button class="cell danger-text" data-media-remove="${key}" hidden>Entfernen</button>
+  </div>`;
+};
 
 const toggleCell = (key, label, hint, checked) => `
   <label class="cell">
@@ -109,7 +130,7 @@ function licenseSheet({ name, url, license }) {
   dialog.querySelector('[data-action="close"]').focus({ preventScroll: true });
 }
 
-export function showSettings(root, { db, settings, nav = 'none', onSettingsChange = () => {} }) {
+export function showSettings(root, { db, settings, media = {}, nav = 'none', onSettingsChange = () => {}, onMediaChange = () => {} }) {
   const screen = mount(root, `
     <main class="page">
       <header class="large-title"><h1>Einstellungen</h1></header>
@@ -124,6 +145,11 @@ export function showSettings(root, { db, settings, nav = 'none', onSettingsChang
         ${toggleCell('animations', 'Bewegte Effekte', 'Aura und Linien im Training bewegen sich. Aus: Sie stehen still.', settings.animations)}
       </div>
       <p class="group-foot">Die Designs ändern Farben, Titelschrift und den Trainingsbildschirm. Hell und Dunkel gilt für jedes Design.</p>
+
+      <h2 class="group-title">Persönlich</h2>
+      ${MEDIA_KEYS.map(mediaGroup).join('')}
+      <p class="group-foot">Bild und Töne bleiben nur auf diesem Gerät: Sie stehen nicht in der Sicherung und nicht im Teilen-Link. Das Bild liegt abgedunkelt hinter dem Training, damit die Restzeit lesbar bleibt.</p>
+      <p class="group-foot" data-el="media-status" role="status" hidden></p>
 
       <h2 class="group-title">Ton</h2>
       ${segmented('soundMode', SOUND_OPTIONS, 'Ton-Modus')}
@@ -218,6 +244,89 @@ export function showSettings(root, { db, settings, nav = 'none', onSettingsChang
     }),
   );
 
+  // ----- personal media: own picture, own sounds (device only) -----
+  const mediaStatus = $('[data-el="media-status"]');
+  const setMediaStatus = (msg, ok = true) => {
+    mediaStatus.textContent = msg;
+    mediaStatus.hidden = false;
+    mediaStatus.classList.toggle('err', !ok);
+  };
+  let thumbUrl = null;
+  function renderMedia(key) {
+    const group = $(`[data-media="${key}"]`);
+    const record = media[key];
+    const image = MEDIA_SLOTS[key].kind === 'image';
+    const state = group.querySelector('[data-el="state"]');
+    if (image) {
+      state.textContent = record ? `Eigenes Bild, ${formatBytes(record.bytes.byteLength)}` : 'Kein Bild gewählt';
+      const thumb = group.querySelector('[data-el="thumb"]');
+      if (thumbUrl) URL.revokeObjectURL(thumbUrl);
+      thumbUrl = record ? recordUrl(record) : null;
+      thumb.hidden = !record;
+      thumb.style.backgroundImage = record ? `url("${thumbUrl}")` : '';
+    } else {
+      const length = record?.seconds ? `, ${String(record.seconds).replace('.', ',')} s` : '';
+      state.textContent = record ? `${record.name || 'Eigener Ton'}${length}` : 'Eingebauter Ton';
+      group.querySelector('[data-media-play]').hidden = !record;
+    }
+    group.querySelector('[data-el="pick"]').textContent = image ? (record ? 'Anderes Bild wählen' : 'Bild wählen') : (record ? 'Andere Tondatei wählen' : 'Tondatei wählen');
+    group.querySelector('[data-media-remove]').hidden = !record;
+  }
+  MEDIA_KEYS.forEach(renderMedia);
+
+  // a second file chosen while the first is still being stored is ignored
+  const storeMedia = once(async (key, input) => {
+    const file = input.files?.[0];
+    if (!file) return;
+    const { kind, label } = MEDIA_SLOTS[key];
+    setMediaStatus('Wird gespeichert …');
+    try {
+      checkFile(key, file);
+      let record;
+      if (kind === 'image') {
+        record = makeMediaRecord({ ...(await photoToJpeg(file)), name: file.name });
+      } else {
+        const bytes = await file.arrayBuffer();
+        audio.setMode(settings.soundMode);
+        const seconds = await audio.probe(bytes).catch(() => {
+          throw new Error('Die Tondatei lässt sich nicht abspielen.');
+        });
+        checkSoundLength(seconds);
+        record = makeMediaRecord({ type: file.type, bytes, name: file.name, seconds });
+      }
+      await db.saveMedia(key, record);
+      media[key] = record;
+      onMediaChange(key, record);
+      renderMedia(key);
+      setMediaStatus(`${label} gespeichert.`);
+    } catch (err) {
+      setMediaStatus(err.message || 'Konnte nicht gespeichert werden.', false);
+    } finally {
+      input.value = ''; // lets the same file be chosen again
+    }
+  });
+  screen.querySelectorAll('[data-media-input]').forEach((input) =>
+    input.addEventListener('change', () => storeMedia(input.dataset.mediaInput, input)));
+
+  const removeMedia = once(async (key) => {
+    const { kind, label } = MEDIA_SLOTS[key];
+    const ok = await confirmSheet({
+      title: `${label} entfernen?`,
+      message: kind === 'image' ? 'Das Training zeigt wieder nur die Phasenfarbe.' : 'Es gilt wieder der eingebaute Ton.',
+      confirmLabel: 'Entfernen',
+    });
+    if (!ok) return;
+    try {
+      await db.removeMedia(key);
+      media[key] = null;
+      onMediaChange(key, null);
+      renderMedia(key);
+      setMediaStatus(`${label} entfernt.`);
+    } catch (err) {
+      setMediaStatus('Konnte nicht entfernt werden: ' + err.message, false);
+    }
+  });
+
   // The font's licence is the text file next to the font (in the offline cache as well).
   const showFontLicense = once(async () => {
     if (document.querySelector('dialog.form-sheet[open]')) return;
@@ -274,7 +383,14 @@ export function showSettings(root, { db, settings, nav = 'none', onSettingsChang
     const target = event.target.closest('button');
     if (!target) return;
     const group = target.closest('[data-segmented]')?.dataset.segmented;
-    if (target.dataset.look) {
+    if (target.dataset.mediaRemove) {
+      removeMedia(target.dataset.mediaRemove);
+    } else if (target.dataset.mediaPlay) {
+      audio.setMode(settings.soundMode);
+      audio.setVolume(settings.volume);
+      audio.unlock();
+      audio.play(MEDIA_SLOTS[target.dataset.mediaPlay].signal);
+    } else if (target.dataset.look) {
       settings.look = applyLook(target.dataset.look, settings.animations);
       renderLooks();
       onSettingsChange();

@@ -232,6 +232,12 @@ dialog.form-sheet::backdrop { background: var(--scrim); }
 .form-body .group-title, .form-body .group-foot { margin-left: 0; margin-right: 0; }
 .form-delete { margin-top: 26px; }
 
+/* personal media in the settings */
+.media-thumb { flex: none; width: 56px; height: 56px; border-radius: var(--r-s); background: var(--fill) center / cover no-repeat; }
+.media-thumb[hidden] { display: none; }
+.cell.danger-text { color: var(--danger); }
+.cell[hidden] { display: none; }
+
 /* design choice in the settings */
 .look-dots { flex: none; display: flex; }
 .look-dots i { width: 22px; height: 22px; margin-left: -7px; border-radius: 50%; border: 2px solid var(--surface); }
@@ -393,6 +399,19 @@ body.running { overflow: hidden; overscroll-behavior: none; }
 .run[data-phase="rest"] { --phase-top: var(--phase-rest-top); --phase-bottom: var(--phase-rest-bottom); }
 .run[data-phase="roundRest"] { --phase-top: var(--phase-roundRest-top); --phase-bottom: var(--phase-roundRest-bottom); }
 .run[data-phase="cooldown"] { --phase-top: var(--phase-cooldown-top); --phase-bottom: var(--phase-cooldown-bottom); }
+
+/* own background picture: its own layer (painted once), picture → dark scrim → phase colour */
+.run-photo { display: none; }
+.run.has-photo { background: #000; }
+.run.has-photo .run-photo { display: block; position: absolute; inset: 0; z-index: -2; background: center / cover no-repeat; will-change: transform; }
+.run.has-photo .run-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--phase-top) var(--photo-tint), transparent), color-mix(in srgb, var(--phase-bottom) var(--photo-tint), transparent)),
+    linear-gradient(var(--photo-scrim), var(--photo-scrim));
+}
 
 .run-top { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, max-content); align-items: center; gap: 10px; font-size: var(--t-subhead); }
 .run-abort {

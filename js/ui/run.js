@@ -43,9 +43,11 @@ const START_SIGNAL = {
 // rotate inside a clipping box (right half first, then left), so the browser can move it on the
 // compositor like the bar: smooth, without redrawing the page. A dot marks the start at 12 o'clock.
 // .run-fx (speed lines, raster) and .ring-aura are empty layers that only the looks in
-// css/looks.css fill; in the standard design they are not displayed.
+// css/looks.css fill; in the standard design they are not displayed. .run-photo carries the
+// user's own background picture, if there is one, under a dimming layer in the phase colour.
 const TEMPLATE = `
   <section class="run" data-phase="prep">
+    <div class="run-photo" aria-hidden="true"></div>
     <div class="run-fx" aria-hidden="true"><div class="fx-lines"></div><div class="fx-dots"></div></div>
     <header class="run-top">
       <button class="run-abort" data-action="abort">Abbrechen</button>
@@ -76,7 +78,7 @@ const TEMPLATE = `
     </nav>
   </section>`;
 
-export function showRun(root, { circuit, settings, onEnd }) {
+export function showRun(root, { circuit, settings, photoUrl = null, onEnd }) {
   const plan = buildPlan(circuit.settings, circuit.exercises);
 
   // Still inside the Start tap: unlock sound and speech now (iOS autoplay rule).
@@ -88,6 +90,10 @@ export function showRun(root, { circuit, settings, onEnd }) {
 
   document.body.classList.add('running');
   const screen = mount(root, TEMPLATE, { nav: 'fade' }).querySelector('.run');
+  if (photoUrl) {
+    screen.classList.add('has-photo');
+    screen.querySelector('.run-photo').style.backgroundImage = `url("${photoUrl}")`;
+  }
   const els = Object.fromEntries([...screen.querySelectorAll('[data-el]')].map((el) => [el.dataset.el, el]));
   const toggleButton = screen.querySelector('[data-action="toggle"]');
   const audioHint = screen.querySelector('[data-action="audio"]');

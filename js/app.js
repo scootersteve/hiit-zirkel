@@ -25,6 +25,9 @@ import { showRun } from './ui/run.js';
 import { showDone } from './ui/done.js';
 import { registerServiceWorker, applyUpdate } from './platform/update.js';
 import { applyTheme, applyLook } from './platform/theme.js';
+import * as audio from './platform/audio.js';
+import { recordUrl } from './platform/media.js';
+import { MEDIA_SLOTS } from './core/media.js';
 
 const db = await openDb(); // IndexedDB in the browser, in-memory fallback otherwise — never throws
 let settings;
@@ -58,6 +61,22 @@ const safely = async (promise, fallback) => {
     return fallback;
   }
 };
+
+// Personal media (device only): own sounds go to the audio module, the picture becomes an
+// object URL for the training screen. Called at start and whenever the settings change one.
+const media = await safely(db.loadMedia(), {});
+let photoUrl = null;
+function applyMedia(key, record) {
+  media[key] = record || null;
+  const slot = MEDIA_SLOTS[key];
+  if (slot.kind === 'sound') {
+    audio.setCustomSound(slot.signal, record ? record.bytes : null);
+  } else {
+    if (photoUrl) URL.revokeObjectURL(photoUrl);
+    photoUrl = record ? recordUrl(record) : null;
+  }
+}
+for (const key of Object.keys(MEDIA_SLOTS)) applyMedia(key, media[key]);
 
 // "Neue Version verfügbar" hint: only shown on the start screen, never during a training.
 const updateBanner = document.getElementById('update-banner');
@@ -100,7 +119,7 @@ async function showTab(tab, nav = 'none') {
       onCleared: () => showTab('history'),
     });
   } else if (tab === 'settings') {
-    showSettings(root, { db, settings, nav, onSettingsChange: persistSettings });
+    showSettings(root, { db, settings, media, nav, onSettingsChange: persistSettings, onMediaChange: applyMedia });
   } else {
     const templates = (await safely(db.listTemplates(), [])).sort((a, b) => (b.lastUsedAt || 0) - (a.lastUsedAt || 0));
     if (token !== navToken) return;
@@ -199,6 +218,7 @@ function run(circuit, templateId = null) {
   showRun(root, {
     circuit,
     settings,
+    photoUrl,
     onEnd: (result) => {
       db.addHistory(historyFromResult(result, { templateId })).catch(() => {});
       showDone(root, { result, onRepeat: () => run(circuit, templateId), onHome: () => home('fade') });

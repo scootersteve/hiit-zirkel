@@ -1,4 +1,5 @@
-// Sound output: our own tones, generated with Web Audio. No sound files, no third-party sounds.
+// Sound output: our own tones, generated with Web Audio. No sound files, no third-party sounds
+// in the app itself; the user may put own sounds on two signals (kept on the device only).
 // Sound mode = audioSession type (settings.soundMode):
 //   "playback" ("Immer hörbar"): audible despite the mute switch, pauses other music.
 //   "ambient"  ("Musik-Modus"):  mixes with Spotify, silent when the mute switch is on.
@@ -21,6 +22,11 @@ const SIGNALS = {
 };
 
 export const SIGNAL_NAMES = Object.keys(SIGNALS);
+
+// Own sounds (personalisation): signal name → bytes of the audio file the user chose. They are
+// decoded for the current context; a new context (after a mode change) decodes them again.
+const customBytes = new Map();
+const customBuffers = new Map();
 
 let ctx = null;
 let master = null;
@@ -45,8 +51,40 @@ export function setMode(newMode) {
     ctx.close().catch(() => {});
     ctx = null;
     master = null;
+    customBuffers.clear();
   }
   applySessionType();
+}
+
+// decodeAudioData empties the buffer it is given, so it always gets a copy. Callback form:
+// older Safari versions have no promise form.
+const decode = (context, bytes) => new Promise((resolve, reject) => context.decodeAudioData(bytes.slice(0), resolve, reject));
+
+function decodeCustom(name, bytes) {
+  if (!ctx) return Promise.resolve(null);
+  const own = ctx;
+  return decode(own, bytes).then((buffer) => {
+    if (own === ctx && customBytes.get(name) === bytes) customBuffers.set(name, buffer); // still current?
+    return buffer;
+  });
+}
+
+/** Replaces a built-in signal by an own sound (bytes of an audio file); null restores the tone. */
+export function setCustomSound(name, bytes) {
+  customBuffers.delete(name);
+  if (!bytes) {
+    customBytes.delete(name);
+    return Promise.resolve(null);
+  }
+  customBytes.set(name, bytes);
+  return decodeCustom(name, bytes).catch(() => null);
+}
+
+/** Length in seconds of an audio file, to check it before it is stored. Rejects if undecodable. */
+export async function probe(bytes) {
+  unlock();
+  if (!ctx) throw new Error('Kein Ton in diesem Browser');
+  return (await decode(ctx, bytes)).duration;
 }
 
 export function setVolume(v) {
@@ -66,6 +104,7 @@ export function unlock() {
     master.connect(ctx.destination);
     const own = ctx;
     own.onstatechange = () => own === ctx && stateListeners.forEach((fn) => fn(own.state));
+    for (const [name, bytes] of customBytes) decodeCustom(name, bytes).catch(() => {});
   }
   if (ctx.state !== 'running') ctx.resume().catch(() => {});
   // One silent sample fully wakes up the audio output on iOS.
@@ -103,6 +142,14 @@ export function play(name) {
   if (ctx.state !== 'running') {
     ctx.resume().catch(() => {});
     return 0;
+  }
+  const custom = customBuffers.get(name);
+  if (custom) {
+    const src = ctx.createBufferSource();
+    src.buffer = custom;
+    src.connect(master);
+    src.start(ctx.currentTime + 0.02);
+    return Math.round(custom.duration * 1000);
   }
   let t = ctx.currentTime + 0.02;
   for (const { freq, ms } of segments) {

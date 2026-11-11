@@ -216,6 +216,80 @@ try {
   check('Design: zurück auf Standard entfernt das Design vollständig', lookOff.look === null && lookOff.anim === null && lookOff.stored === null, JSON.stringify(lookOff));
   await sleep(700);
 
+  // Personal media: own picture and own sound are stored on the device, survive a reload,
+  // reach the training screen, and a too long sound is refused with a reason.
+  // Files are made in the page (a canvas picture, a short WAV) and handed to the file inputs.
+  const giveFile = (slot, makeBlob, name, type) => evaluate(`(async () => {
+    const blob = await (${makeBlob})();
+    const dt = new DataTransfer();
+    dt.items.add(new File([blob], ${JSON.stringify(name)}, { type: ${JSON.stringify(type)} }));
+    const input = document.querySelector('[data-media-input="${slot}"]');
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+  const picture = `() => { const c = document.createElement('canvas'); c.width = 2400; c.height = 1200; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 2400, 1200); g.fillStyle = '#08f'; g.fillRect(0, 0, 1200, 1200); return new Promise((r) => c.toBlob(r, 'image/png')); }`;
+  const wav = (seconds) => `() => { const rate = 8000, n = Math.round(rate * ${seconds}); const b = new ArrayBuffer(44 + n * 2); const v = new DataView(b);
+    const str = (o, s) => [...s].forEach((ch, i) => v.setUint8(o + i, ch.charCodeAt(0)));
+    str(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.round(Math.sin(i / rate * 2 * Math.PI * 440) * 8000), true);
+    return new Blob([b], { type: 'audio/wav' }); }`;
+  const mediaState = (slot) => evaluate(`document.querySelector('[data-media="${slot}"] [data-el="state"]').textContent`);
+  const mediaStatus = () => evaluate(`(() => { const s = document.querySelector('[data-el="media-status"]'); return s.hidden ? '' : s.textContent; })()`);
+
+  await giveFile('background', picture, 'foto.png', 'image/png');
+  await waitEval(`document.querySelector('[data-media="background"] [data-el="state"]').textContent.startsWith('Eigenes Bild')`);
+  const thumb = await evaluate(`(() => { const t = document.querySelector('[data-media="background"] [data-el="thumb"]'); return { hidden: t.hidden, bg: t.style.backgroundImage.slice(0, 9), remove: !document.querySelector('[data-media-remove="background"]').hidden }; })()`);
+  check('Persönlich: eigenes Bild gespeichert, Vorschau und "Entfernen" erscheinen', !thumb.hidden && thumb.bg === 'url("blob' && thumb.remove, `${await mediaState('background')} ${JSON.stringify(thumb)}`);
+
+  await giveFile('sound-end', wav(0.4), 'fanfare.wav', 'audio/wav');
+  await waitEval(`document.querySelector('[data-media="sound-end"] [data-el="state"]').textContent.includes('fanfare.wav')`);
+  const soundState = await mediaState('sound-end');
+  check('Persönlich: eigener Ton gespeichert, Länge angezeigt, "Anhören" erscheint',
+    /fanfare\.wav, 0,4 s/.test(soundState) && (await evaluate(`!document.querySelector('[data-media-play="sound-end"]').hidden`)), soundState);
+  await evaluate(`document.querySelector('[data-media-play="sound-end"]').click(); true`); // must not throw
+
+  await giveFile('sound-roundDone', wav(9), 'lang.wav', 'audio/wav');
+  await waitEval(`/höchstens 8 s/.test(document.querySelector('[data-el="media-status"]').textContent)`);
+  check('Persönlich: zu langer Ton wird mit Begründung abgelehnt, nichts gespeichert',
+    (await mediaState('sound-roundDone')) === 'Eingebauter Ton', await mediaStatus());
+
+  await send('Page.reload');
+  await waitEval(`document.querySelector('#app main')`);
+  await goTab('settings', `document.querySelector('[data-media="background"]')`);
+  const afterReload = { bg: await mediaState('background'), end: await mediaState('sound-end'), round: await mediaState('sound-roundDone') };
+  check('Persönlich: Bild und Ton bleiben nach Reload (IndexedDB)',
+    afterReload.bg.startsWith('Eigenes Bild') && afterReload.end.includes('fanfare.wav') && afterReload.round === 'Eingebauter Ton', JSON.stringify(afterReload));
+  const stored = await evaluate(`(async () => { const req = indexedDB.open('hiit-zirkel'); const db = await new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); });
+    const get = (k) => new Promise((res) => { const r = db.transaction('media').objectStore('media').get(k); r.onsuccess = () => res(r.result); });
+    const bg = await get('background'); db.close();
+    const img = await createImageBitmap(new Blob([bg.bytes], { type: bg.type }));
+    return { type: bg.type, kb: Math.round(bg.bytes.byteLength / 1024), w: img.width, h: img.height }; })()`);
+  check('Persönlich: Bild als JPEG auf höchstens 1600 px verkleinert', stored.type === 'image/jpeg' && stored.w === 1600 && stored.h === 800, JSON.stringify(stored));
+
+  await goTab('home', `document.querySelector('[data-nav="new"]')`);
+  await evaluate(`document.querySelector('[data-card="start"][data-id="sample-quick"]').click(); true`);
+  await waitEval(`document.querySelector('.run')`);
+  const photo = await evaluate(`(() => { const r = document.querySelector('.run'); const p = r.querySelector('.run-photo'); return { has: r.classList.contains('has-photo'), display: getComputedStyle(p).display,
+    img: p.style.backgroundImage.slice(0, 9), cover: getComputedStyle(p, '::after').backgroundImage.includes('gradient') }; })()`);
+  check('Training: eigenes Bild liegt hinter der Phasenfarbe (abgedunkelt)', photo.has && photo.display === 'block' && photo.img === 'url("blob' && photo.cover, JSON.stringify(photo));
+  await evaluate(`document.querySelector('[data-action="abort"]').click(); true`);
+  await waitEval(`document.querySelector('dialog.sheet[open]')`);
+  await evaluate(`document.querySelector('dialog.sheet [data-sheet="ok"]').click(); true`);
+  await waitEval(`document.querySelector('[data-action="home"]')`);
+  await evaluate(`document.querySelector('[data-action="home"]').click(); true`);
+  await waitEval(`document.querySelector('[data-nav="new"]')`);
+  await sleep(400);
+
+  await goTab('settings', `document.querySelector('[data-media-remove="background"]')`);
+  await evaluate(`document.querySelector('[data-media-remove="background"]').click(); true`);
+  await waitEval(`document.querySelector('dialog.sheet[open]')`);
+  await evaluate(`document.querySelector('dialog.sheet [data-sheet="ok"]').click(); true`);
+  await waitEval(`document.querySelector('[data-media="background"] [data-el="state"]').textContent === 'Kein Bild gewählt'`);
+  check('Persönlich: Bild entfernen nach Rückfrage', (await evaluate(`document.querySelector('[data-media-remove="background"]').hidden`)) === true, await mediaStatus());
+  await sleep(300);
+
   // Licences and sources: the notice for the body graphic is in the app, with the full text
   const lic = await evaluate(`document.querySelector('[data-el="licenses"]')?.textContent || ''`);
   await evaluate(`document.querySelector('[data-action="body-license"]').click(); true`);
@@ -468,6 +542,7 @@ try {
       exportDetail = err.message;
     }
   }
+  check('Export enthält keine persönlichen Medien (eigener Ton ist noch gespeichert)', !!exportFile && !/fanfare|"media"|"bytes"/.test(readFileSync(exportFile, 'utf8')));
   check('Export erzeugt gültige Sicherungsdatei', exportOk, exportDetail);
 
   // Offline failures for cached assets would show here; only the browser's favicon is expected to 404.

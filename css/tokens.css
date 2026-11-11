@@ -56,6 +56,11 @@
   --phase-roundRest-top: #7a4be0; --phase-roundRest: #6d3fd6; --phase-roundRest-bottom: #5a2fbf;
   --phase-cooldown-top: #107e97;  --phase-cooldown: #0f7a92;  --phase-cooldown-bottom: #0b6378;
   --on-phase: #ffffff;
+  /* own background picture in the training: first darkened, then covered by the phase colour
+     at this strength. With these two values even a pure white picture keeps the text readable
+     (test/tokens.test.js checks every phase of every look). */
+  --photo-scrim: rgb(0 0 0 / 0.6);
+  --photo-tint: 72%;
 
   /* ---- type scale (rem = the device's text size: 17px by default on iOS) ---- */
   --t-large: 2rem;        /* 34 large title */
