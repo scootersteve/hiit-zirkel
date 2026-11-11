@@ -12,7 +12,7 @@ import { launch, sleep } from './cdp.mjs';
 
 const WIDTH = Number(process.argv[2]) || 390;
 const HEIGHT = Number(process.argv[3]) || 844;
-const LOOK = process.argv[4] || '';
+const LOOK = process.argv[4] || 'standard'; // the default for users is "flammen"; files of other looks carry the name
 const OUT = join(fileURLToPath(new URL('..', import.meta.url)), 'shots');
 mkdirSync(OUT, { recursive: true });
 
@@ -28,7 +28,7 @@ async function shot(name, { full = false } = {}) {
   }
   const { data } = await b.send('Page.captureScreenshot', { format: 'png' });
   if (full) await b.setViewport(WIDTH, HEIGHT);
-  const file = join(OUT, `${name}${LOOK ? `-${LOOK}` : ''}-${WIDTH}.png`);
+  const file = join(OUT, `${name}${LOOK !== 'standard' ? `-${LOOK}` : ''}-${WIDTH}.png`);
   writeFileSync(file, Buffer.from(data, 'base64'));
   console.log(file);
 }

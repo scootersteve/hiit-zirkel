@@ -8,8 +8,9 @@ import { LOOKS, LOOK_IDS, lookById, characterSrc, CHARACTER_POSES } from '../js/
 
 const file = (path) => new URL(`../${path}`, import.meta.url);
 
-test('Designs: "standard" zuerst, eindeutige Kennungen, unbekannte Kennung fällt auf Standard', () => {
-  assert.equal(LOOK_IDS[0], 'standard');
+test('Designs: Flammen zuerst, das ruhige Standard-Design zuletzt, eindeutige Kennungen', () => {
+  assert.equal(LOOK_IDS[0], 'flammen');
+  assert.equal(LOOK_IDS.at(-1), 'standard');
   assert.equal(new Set(LOOK_IDS).size, LOOK_IDS.length);
   assert.equal(lookById('gibt-es-nicht').id, 'standard');
   assert.equal(lookById(undefined).id, 'standard');

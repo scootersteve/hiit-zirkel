@@ -183,7 +183,26 @@
   transition: background-color var(--d-base) ease, color var(--d-base) ease, transform var(--d-press) var(--ease-out);
 }
 .ex-add .icon { width: 20px; height: 20px; }
-.ex-row.added .ex-add { background: var(--accent-fill); color: var(--on-accent); transform: scale(1.08); }
+.ex-add { position: relative; }
+.ex-row.added .ex-add { background: var(--accent-fill); color: var(--on-accent); animation: add-pop var(--d-base) var(--ease-out); }
+/* how often the exercise is in the circuit, when more than once */
+.ex-times {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: var(--surface);
+  font-size: var(--t-caption);
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+@keyframes add-pop { 0% { transform: scale(0.85); } 60% { transform: scale(1.1); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .ex-row.added .ex-add { animation: none; } }
 
 .chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {

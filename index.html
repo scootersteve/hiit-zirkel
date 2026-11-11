@@ -21,8 +21,8 @@
       var d = document.documentElement.dataset;
       var t = localStorage.getItem('zd-theme');
       if (t === 'light' || t === 'dark') d.theme = t;
-      var l = localStorage.getItem('zd-look');
-      if (l && /^[a-z]+$/.test(l)) d.look = l;
+      var l = localStorage.getItem('zd-look') || 'flammen'; // default look, as in js/storage/db.js
+      if (l !== 'standard' && /^[a-z]+$/.test(l)) d.look = l;
       if (localStorage.getItem('zd-anim') === 'off') d.anim = 'off';
     } catch (e) {}
   </script>

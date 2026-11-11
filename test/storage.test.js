@@ -202,22 +202,27 @@ test('Import einer alten Sicherung (0.5.0) migriert die Einstellungen statt sie 
   assert.equal(loaded.theme, 'auto');
 });
 
-test('Design (look): alte Einstellungen ohne Feld bekommen "standard", der Rest bleibt', async () => {
+test('Design (look): Einstellungen ohne Feld bekommen die Voreinstellung "flammen", der Rest bleibt', async () => {
   const store = createMemoryStore();
   await store.put('kv', { settingsVersion: 2, soundMode: 'ambient', volume: 0.3, theme: 'dark' }, 'settings');
   const loaded = await createDb(store).loadSettings();
-  assert.equal(loaded.look, 'standard');
+  assert.equal(loaded.look, 'flammen');
   assert.equal(loaded.animations, true);
   assert.deepEqual([loaded.soundMode, loaded.volume, loaded.theme], ['ambient', 0.3, 'dark']);
 });
 
-test('Design (look): Wahl bleibt nach Speichern und Laden, unbekannter Wert fällt auf "standard"', async () => {
+test('Design (look): Wahl bleibt nach Speichern und Laden, auch "standard"; unbekannter Wert fällt auf die Voreinstellung', async () => {
   const db = createDb(createMemoryStore());
   await db.saveSettings({ ...DEFAULT_SETTINGS, look: 'flammen', animations: false });
   const loaded = await db.loadSettings();
   assert.equal(loaded.look, 'flammen');
   assert.equal(loaded.animations, false);
-  assert.equal(migrateSettings({ settingsVersion: 2, look: 'gibt-es-nicht' }).look, 'standard');
+  assert.equal(migrateSettings({ settingsVersion: 2, look: 'gibt-es-nicht' }).look, undefined);
+  assert.equal(migrateSettings({ settingsVersion: 2, look: 'standard' }).look, 'standard'); // chosen before: stays
+  assert.equal(DEFAULT_SETTINGS.look, 'flammen');
+  const db2 = createDb(createMemoryStore());
+  await db2.importData({ settings: { settingsVersion: 2, look: 'neon' } });
+  assert.equal((await db2.loadSettings()).look, 'flammen');
   assert.equal(migrateSettings({ settingsVersion: 2, look: 'ninja', animations: 'ja' }).animations, true);
   assert.equal(migrateSettings({ settingsVersion: 2, look: 'ninja' }).look, 'ninja');
 });

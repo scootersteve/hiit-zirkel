@@ -152,6 +152,16 @@ try {
   const tabState = await evaluate(`({ hidden: document.getElementById('tabbar').hidden, current: document.querySelector('#tabbar [aria-current="page"]')?.dataset.nav })`);
   check('Tab-Leiste sichtbar, Tab "Zirkel" aktiv', tabState.hidden === false && tabState.current === 'home', JSON.stringify(tabState));
 
+  // Default design on a fresh start: Flammen, already before the first paint (no flash)
+  const fresh = await evaluate(`({ look: document.documentElement.dataset.look, buddy: !!document.querySelector('.home-buddy'), meta: document.querySelector('meta[name="theme-color"]').content })`);
+  check('Voreinstellung beim ersten Start: Design Flammen mit Figur', fresh.look === 'flammen' && fresh.buddy, JSON.stringify(fresh));
+  // the checks below were written for the calm design: choose it, like a user would
+  await goTab('settings', `document.querySelector('[data-look="standard"]')`);
+  await evaluate(`document.querySelector('[data-look="standard"]').click(); true`);
+  check('Standard-Design wählbar, steht am Ende der Liste',
+    await (async () => { const r = await evaluate(`({ last: [...document.querySelectorAll('[data-look]')].at(-1).dataset.look, look: document.documentElement.dataset.look ?? null })`); return r.look === null && r.last === 'standard'; })());
+  await sleep(500);
+
   // Settings persistence across reload
   await goTab('settings', `document.querySelector('${AMBIENT}')`);
   await evaluate(`document.querySelector('${AMBIENT}').click(); true`);
@@ -245,7 +255,7 @@ try {
   await evaluate(`document.querySelector('[data-look="standard"]').click(); true`);
   await evaluate(`(()=>{const t=document.querySelector('[data-toggle="animations"]'); t.checked=true; t.dispatchEvent(new Event('change',{bubbles:true})); return true;})()`);
   const lookOff = await evaluate(`({ look: document.documentElement.dataset.look ?? null, anim: document.documentElement.dataset.anim ?? null, stored: localStorage.getItem('zd-look'), bg: getComputedStyle(document.body).backgroundColor })`);
-  check('Design: zurück auf Standard entfernt das Design vollständig', lookOff.look === null && lookOff.anim === null && lookOff.stored === null, JSON.stringify(lookOff));
+  check('Design: zurück auf Standard entfernt das Design vollständig', lookOff.look === null && lookOff.anim === null && lookOff.stored === 'standard', JSON.stringify(lookOff));
   await goTab('home', `document.querySelector('[data-nav="new"]')`);
   check('Standard-Design: keine Figur auf der Startseite', (await evaluate(`document.querySelector('.home-buddy')`)) === null);
   await goTab('settings', `document.querySelector('[data-look="standard"]')`);
@@ -429,6 +439,25 @@ try {
   await evaluate(`document.querySelector('[data-action="add"]').click(); true`);
   await waitEval(`document.querySelector('[data-pick]')`);
   await evaluate(`const bs=document.querySelectorAll('[data-pick]'); bs[0].click(); bs[1].click(); true`);
+  const marked = () => evaluate(`({ ids: [...document.querySelectorAll('[data-pick][aria-pressed="true"]')].map((b) => b.dataset.pick), count: document.querySelector('[data-el="count"]').textContent })`);
+  const firstPick = await marked();
+  check('Auswahl: hinzugefügte Übungen bleiben markiert, Zählung zeigt "2 im Zirkel"', firstPick.ids.length === 2 && /2 im Zirkel/.test(firstPick.count), JSON.stringify(firstPick));
+  await evaluate(`document.querySelector('[data-action="back"]').click(); true`); // "Fertig"
+  await waitEval(`document.querySelectorAll('.edit-ex').length === 2`);
+  await sleep(400);
+  await evaluate(`document.querySelector('[data-screen="editor"] [data-action="add"]').click(); true`);
+  await waitEval(`document.querySelector('[data-pick]')`);
+  const again = await marked();
+  check('Auswahl erneut geöffnet: dieselben zwei sind weiter markiert (zuletzt genutzte stehen oben)', again.ids.length === 2 && [...again.ids].sort().join() === [...firstPick.ids].sort().join(), JSON.stringify(again));
+  await sleep(400);
+  await evaluate(`document.querySelector('[data-pick="${again.ids[0]}"]').click(); true`);
+  await evaluate(`document.querySelector('[data-pick="${again.ids[0]}"]').click(); true`); // double tap: ignored
+  const removed = await marked();
+  await sleep(450);
+  await evaluate(`document.querySelector('[data-pick="${again.ids[0]}"]').click(); true`); // tap again: back in
+  const back = await marked();
+  check('Auswahl: Tipp auf markierte Übung nimmt sie heraus, Doppeltipp zählt einmal, erneuter Tipp fügt wieder hinzu',
+    removed.ids.length === 1 && /1 im Zirkel/.test(removed.count) && back.ids.length === 2, JSON.stringify({ removed, back }));
   await evaluate(`document.querySelector('[data-action="back"]').click(); true`); // "Fertig"
   await waitEval(`document.querySelectorAll('.edit-ex').length === 2`);
   const over = await evaluate(`(()=>{const m=document.querySelector('[data-el="muscles"]'); return { hidden: m.hidden, sides: m.querySelectorAll('.body-side').length,

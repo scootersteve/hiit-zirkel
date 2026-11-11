@@ -3,7 +3,8 @@
 //   look   "standard" or one of the anime-inspired looks (js/data/looks.js, css/looks.css),
 //          plus "animations": whether the looks' effects move
 // Both live in the settings (IndexedDB); copies in localStorage let index.html apply them before
-// the first paint, so the app never flashes the wrong scheme or the standard design at start.
+// the first paint, so the app never flashes the wrong scheme or design at start. The look is
+// always stored, also "standard": without an entry index.html assumes the default look.
 
 import { lookById } from '../data/looks.js';
 
@@ -52,7 +53,7 @@ export function applyLook(look, animations = true) {
   if (animations) delete root.dataset.anim;
   else root.dataset.anim = 'off';
   paintBar();
-  store(LOOK_KEY, id === 'standard' ? null : id);
+  store(LOOK_KEY, id);
   store(ANIM_KEY, animations ? null : 'off');
   return id;
 }

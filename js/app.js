@@ -179,6 +179,12 @@ async function openEditor(working, isExisting, nav = 'push') {
         if (!working.uniformTime) snap.workS = working.settings.workS; // keep non-uniform consistent
         working.exercises.push(snap);
       },
+      // the marks in the picker come from the circuit itself, so they are right on every visit
+      inCircuit: () => working.exercises.map((e) => e.id),
+      unpick: (exercise) => {
+        const at = working.exercises.map((e) => e.id).lastIndexOf(exercise.id);
+        if (at >= 0) working.exercises = [...working.exercises.slice(0, at), ...working.exercises.slice(at + 1)];
+      },
     });
   }
 

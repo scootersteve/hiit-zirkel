@@ -1,7 +1,9 @@
 // Exercise library. Two uses:
 //  - tab "Übungen": browse built-in and own exercises, create/edit/delete own ones
 //  - picker (pushed from the circuit editor, `pick` given): tap a row to add it to the circuit,
-//    recently used exercises first, "Fertig" returns
+//    recently used exercises first, "Fertig" returns. Exercises that are in the circuit stay
+//    marked with a check (and how often, if more than once), also when the picker is opened
+//    again; tapping a marked row takes it out again.
 // Search is diacritic-insensitive; when it finds nothing, the search text can become an own
 // exercise in one tap. A built-in exercise opens a detail sheet with the body graphic.
 
@@ -32,7 +34,7 @@ const muscleChips = (group, selected) =>
     )
     .join('');
 
-function exerciseRow(e, pickMode) {
+function exerciseRow(e, pickMode, inCircuit = 0) {
   const meta = [CATEGORIES[e.category], e.equipment !== 'none' ? EQUIPMENT[e.equipment] : null].filter(Boolean);
   const primary = e.primaryMuscles.map((m) => MUSCLES[m] || m).join(', ');
   const tags = `${e.sides ? '<span class="tag">L/R</span>' : ''}${e.custom ? '<span class="tag accent">Eigene</span>' : ''}`;
@@ -42,7 +44,7 @@ function exerciseRow(e, pickMode) {
       <span class="ex-meta">${esc(meta.join(' · '))}${primary ? ` · ${esc(primary)}` : ''}</span>
     </span>`;
   if (pickMode) {
-    return `<button class="cell ex-row" data-pick="${esc(e.id)}" aria-label="${esc(e.name)} hinzufügen">${body}<span class="ex-add">${icon('plus')}</span></button>`;
+    return `<button class="cell ex-row${inCircuit ? ' added' : ''}" data-pick="${esc(e.id)}" aria-pressed="${inCircuit ? 'true' : 'false'}" aria-label="${esc(pickLabel(e.name, inCircuit))}">${body}${pickMark(inCircuit)}</button>`;
   }
   if (e.custom) {
     return `<button class="cell ex-row" data-edit="${esc(e.id)}" aria-label="${esc(e.name)} bearbeiten">${body}<span class="ex-chevron">${icon('chevronRight')}</span></button>`;
@@ -50,12 +52,17 @@ function exerciseRow(e, pickMode) {
   return `<button class="cell ex-row" data-info="${esc(e.id)}" aria-label="${esc(e.name)}, Muskeln ansehen">${body}<span class="ex-chevron">${icon('chevronRight')}</span></button>`;
 }
 
+const pickLabel = (name, n) => (n ? `${name}, im Zirkel${n > 1 ? ` ${n}-mal` : ''}. Tippen entfernt sie einmal.` : `${name} hinzufügen`);
+const pickMark = (n) =>
+  `<span class="ex-add" aria-hidden="true">${icon(n ? 'check' : 'plus')}${n > 1 ? `<span class="ex-times num">${n}</span>` : ''}</span>`;
+
 /**
  * pick(exercise): when given, the screen is the picker. `usage` ({ id: timestamp }) puts recently
  * used exercises first there. `custom` and `usage` are loaded by the caller, so the screen
- * appears at once.
+ * appears at once. `inCircuit()` returns the ids that are in the circuit right now (one entry
+ * per occurrence), `unpick(exercise)` takes one occurrence out again.
  */
-export function showLibrary(root, { db, custom: initialCustom = [], usage = {}, onBack = () => {}, pick = null, nav = 'none' }) {
+export function showLibrary(root, { db, custom: initialCustom = [], usage = {}, onBack = () => {}, pick = null, unpick = () => {}, inCircuit = () => [], nav = 'none' }) {
   const pickMode = typeof pick === 'function';
   let custom = initialCustom;
   const filter = { query: '', category: '', equipment: '' };
@@ -108,12 +115,28 @@ export function showLibrary(root, { db, custom: initialCustom = [], usage = {}, 
   const recency = (e) => usage[e.id] || 0;
   const order = (a, b) => (pickMode ? recency(b) - recency(a) : 0) || byName(a, b);
 
+  // how often each exercise is in the circuit right now
+  const timesInCircuit = () => {
+    const counts = new Map();
+    for (const id of inCircuit()) counts.set(id, (counts.get(id) || 0) + 1);
+    return counts;
+  };
+
+  function renderCount(shownCount, allCount) {
+    const base = shownCount === allCount ? `${allCount} Übungen` : `${shownCount} von ${allCount} Übungen`;
+    const n = pickMode ? inCircuit().length : 0;
+    countEl.textContent = n ? `${base} · ${n} im Zirkel` : base;
+  }
+
+  let lastCounts = { shown: 0, all: 0 };
   function renderList() {
     const all = combineExercises(custom);
     const shown = filterExercises(all, filter).sort(order);
-    countEl.textContent = shown.length === all.length ? `${all.length} Übungen` : `${shown.length} von ${all.length} Übungen`;
+    lastCounts = { shown: shown.length, all: all.length };
+    renderCount(shown.length, all.length);
     listEl.hidden = shown.length === 0;
-    listEl.innerHTML = shown.map((e) => exerciseRow(e, pickMode)).join('');
+    const times = pickMode ? timesInCircuit() : new Map();
+    listEl.innerHTML = shown.map((e) => exerciseRow(e, pickMode, times.get(e.id) || 0)).join('');
 
     const query = filter.query.trim();
     emptyEl.innerHTML = shown.length
@@ -125,21 +148,28 @@ export function showLibrary(root, { db, custom: initialCustom = [], usage = {}, 
          </div>`;
   }
 
+  // Tap on an unmarked row adds the exercise, tap on a marked one takes it out once. A second tap
+  // on the same row within 400 ms counts as a wet-finger double tap and is ignored, so it can
+  // neither add twice nor add and remove at once.
   function pickExercise(id, row) {
-    if (row.classList.contains('added')) return; // a double tap must not add the exercise twice
+    const now = performance.now();
+    if (now - Number(row.dataset.tapAt || 0) < 400) return;
+    row.dataset.tapAt = String(now);
     const exercise = combineExercises(custom).find((e) => e.id === id);
     if (!exercise) return;
-    pick(exercise);
-    usage[exercise.id] = Date.now();
-    db.touchExerciseUsage(exercise.id).catch(() => {});
-    const mark = row.querySelector('.ex-add');
-    mark.innerHTML = icon('check');
-    row.classList.add('added');
-    setTimeout(() => {
-      if (!screen.contains(row)) return;
-      mark.innerHTML = icon('plus');
-      row.classList.remove('added');
-    }, 1000);
+    if (row.classList.contains('added')) {
+      unpick(exercise);
+    } else {
+      pick(exercise);
+      usage[exercise.id] = Date.now();
+      db.touchExerciseUsage(exercise.id).catch(() => {});
+    }
+    const n = timesInCircuit().get(id) || 0;
+    row.classList.toggle('added', n > 0);
+    row.setAttribute('aria-pressed', n > 0 ? 'true' : 'false');
+    row.setAttribute('aria-label', pickLabel(exercise.name, n));
+    row.querySelector('.ex-add').outerHTML = pickMark(n);
+    renderCount(lastCounts.shown, lastCounts.all);
   }
 
   function openDialog(exercise, presetName = '') {

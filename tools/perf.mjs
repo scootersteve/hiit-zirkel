@@ -19,7 +19,8 @@ try {
   await b.goto();
   // PERF_CSS: extra CSS for an experiment, e.g. to switch one effect off and see what it costs
   if (process.env.PERF_CSS) await b.evaluate(`document.head.insertAdjacentHTML('beforeend', '<style>' + ${JSON.stringify(process.env.PERF_CSS)} + '</style>'); true`);
-  if (LOOK) await b.evaluate(`document.documentElement.dataset.look = ${JSON.stringify(LOOK)}; ${ANIM_OFF ? "document.documentElement.dataset.anim = 'off';" : ''} document.fonts.ready.then(() => true)`);
+  // no look given = the calm standard design (the users' default is "flammen")
+  await b.evaluate(`(() => { const d = document.documentElement.dataset; ${LOOK && LOOK !== 'standard' ? `d.look = ${JSON.stringify(LOOK)};` : 'delete d.look;'} ${ANIM_OFF ? "d.anim = 'off';" : ''} return document.fonts.ready.then(() => true); })()`);
 
   // Count how often the page asks for a frame or a timer while the training runs.
   await b.evaluate(`(() => {

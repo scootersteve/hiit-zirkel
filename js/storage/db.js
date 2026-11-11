@@ -19,7 +19,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   countdownBeeps: true,
   halfwayBeep: false,
   theme: 'auto', // "auto" follows the device, "light" / "dark" force a scheme
-  look: 'standard', // design: "standard" or one of the anime-inspired looks (js/data/looks.js)
+  look: 'flammen', // design: one of js/data/looks.js; "standard" is the calm iOS-like one
   animations: true, // moving effects of the looks (aura, speed lines); off = they stand still
 });
 
@@ -37,9 +37,10 @@ export function migrateSettings(saved) {
   const version = Number(out.settingsVersion) || 1;
   if (version < 2) out.theme = 'auto';
   if (!THEMES.includes(out.theme)) out.theme = 'auto';
-  // "look" came with 0.8.0: older settings have none and get the standard design. A look this
-  // version does not know (backup from a newer one) falls back to it as well.
-  if (!LOOK_IDS.includes(out.look)) out.look = 'standard';
+  // "look" came with 0.8.0. Since 0.9.0 the default is "flammen": settings without a look
+  // (older versions, or 0.8.0 without any change in the settings) get it, a look chosen before
+  // stays, also "standard". An unknown look (backup from a newer version) falls back to the default.
+  if (!LOOK_IDS.includes(out.look)) delete out.look;
   if (typeof out.animations !== 'boolean') out.animations = true;
   // values from an imported file are not trusted: a wrong type falls back to the default
   // (a text as volume would otherwise stop the training from starting)
