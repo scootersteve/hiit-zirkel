@@ -1,19 +1,25 @@
 // Measures what a running training costs: main-thread time and callbacks per minute.
 // Starts the sample circuit, lets it run for a window, and reads Chrome's own counters.
 //
-// Usage:  node tools/perf.mjs [seconds]     (default 30, with 4x CPU throttling ≈ slower phone)
+// Usage:  node tools/perf.mjs [seconds] [look]   (default 30 s, with 4x CPU throttling ≈ slower phone;
+//         look = a name from css/looks.css, to measure its effects against the standard design)
 // Numbers are from desktop Chrome, not from an iPhone: use them to compare before/after,
 // not as absolute battery figures.
 
 import { launch, sleep } from './cdp.mjs';
 
 const SECONDS = Number(process.argv[2]) || 30;
+const LOOK = process.argv[3] || '';
+const ANIM_OFF = process.argv[4] === 'off'; // look with the "animations" setting switched off
 const b = await launch({ servePort: 8096, cdpPort: 9336 });
 
 try {
   await b.send('Performance.enable');
   await b.send('Emulation.setCPUThrottlingRate', { rate: 4 });
   await b.goto();
+  // PERF_CSS: extra CSS for an experiment, e.g. to switch one effect off and see what it costs
+  if (process.env.PERF_CSS) await b.evaluate(`document.head.insertAdjacentHTML('beforeend', '<style>' + ${JSON.stringify(process.env.PERF_CSS)} + '</style>'); true`);
+  if (LOOK) await b.evaluate(`document.documentElement.dataset.look = ${JSON.stringify(LOOK)}; ${ANIM_OFF ? "document.documentElement.dataset.anim = 'off';" : ''} document.fonts.ready.then(() => true)`);
 
   // Count how often the page asks for a frame or a timer while the training runs.
   await b.evaluate(`(() => {
@@ -40,7 +46,7 @@ try {
   const ms = (name) => perMin((after[name] - before[name]) * 1000);
   const row = (label, value, unit) => console.log(`${label.padEnd(34)} ${value.toFixed(1).padStart(9)} ${unit}`);
 
-  console.log(`Fenster: ${SECONDS} s laufendes Training, CPU 4x gedrosselt, Werte pro Minute`);
+  console.log(`Fenster: ${SECONDS} s laufendes Training, CPU 4x gedrosselt, Werte pro Minute, Look: ${LOOK || 'Standard'}${ANIM_OFF ? ', Animationen aus' : ''}`);
   row('Haupt-Thread gesamt (TaskDuration)', ms('TaskDuration'), 'ms/min');
   row('  davon JavaScript', ms('ScriptDuration'), 'ms/min');
   row('  davon Stil-Neuberechnung', ms('RecalcStyleDuration'), 'ms/min');

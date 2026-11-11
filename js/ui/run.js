@@ -12,6 +12,24 @@ import * as speech from '../platform/speech.js';
 import * as wake from '../platform/wakelock.js';
 import { setText, icon, mount, confirmSheet } from './dom.js';
 
+// In a look, every character of the remaining time sits in its own cell: the display fonts have
+// no tabular figures, and cells of equal width (css/looks.css) keep the number from wobbling.
+// The cells stay; from one second to the next only the characters that changed are rewritten.
+// The standard design writes the plain text as before.
+function setTime(el, text) {
+  if (el.dataset.text === text) return;
+  const row = el.firstElementChild;
+  if (!row || el.dataset.text?.length !== text.length) {
+    el.innerHTML = `<div>${[...text].map((ch) => `<span${ch === ':' ? ' class="sep"' : ''}>${ch}</span>`).join('')}</div>`;
+  } else {
+    for (let i = 0; i < text.length; i++) {
+      const cell = row.children[i];
+      if (cell.textContent !== text[i]) cell.textContent = text[i];
+    }
+  }
+  el.dataset.text = text;
+}
+
 const START_SIGNAL = {
   [PHASE.PREP]: null, // prep starts with the Start tap itself
   [PHASE.WARMUP]: 'restStart',
@@ -24,8 +42,11 @@ const START_SIGNAL = {
 // The ring shows the progress of the current phase. It is built from two half rings that each
 // rotate inside a clipping box (right half first, then left), so the browser can move it on the
 // compositor like the bar: smooth, without redrawing the page. A dot marks the start at 12 o'clock.
+// .run-fx (speed lines, raster) and .ring-aura are empty layers that only the looks in
+// css/looks.css fill; in the standard design they are not displayed.
 const TEMPLATE = `
   <section class="run" data-phase="prep">
+    <div class="run-fx" aria-hidden="true"><div class="fx-lines"></div><div class="fx-dots"></div></div>
     <header class="run-top">
       <button class="run-abort" data-action="abort">Abbrechen</button>
       <div class="run-elapsed num" data-el="elapsed" aria-label="Verstrichene Zeit">0:00</div>
@@ -35,6 +56,7 @@ const TEMPLATE = `
     <div class="run-main">
       <div class="run-phase"><span data-el="phase"></span><span class="run-paused" data-el="paused" hidden>Pausiert</span></div>
       <div class="run-ring">
+        <div class="ring-aura" aria-hidden="true"><div class="aura-move"><div class="aura-art"></div></div></div>
         <svg class="ring-track" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="45"/></svg>
         <div class="ring-half right" aria-hidden="true"><svg viewBox="0 0 100 100" data-el="ringA"><path d="M50 5A45 45 0 0 0 50 95"/></svg></div>
         <div class="ring-half left" aria-hidden="true"><svg viewBox="0 0 100 100" data-el="ringB"><path d="M50 5A45 45 0 0 1 50 95"/></svg></div>
@@ -77,6 +99,7 @@ export function showRun(root, { circuit, settings, onEnd }) {
   let lastToggleLabel = '';
   let lastTap = { action: '', at: 0 };
   let drawnPhase = -1;
+  const writeTime = document.documentElement.dataset.look ? setTime : setText;
 
   // ---------- sound ----------
 
@@ -132,7 +155,7 @@ export function showRun(root, { circuit, settings, onEnd }) {
     setText(els.phase, PHASE_LABEL[v.phase.type]);
     els.paused.hidden = !paused;
     const time = formatRemaining(v.phaseRemainingMs);
-    setText(els.time, time);
+    writeTime(els.time, time);
     els.time.toggleAttribute('data-long', time.length > 4);
     els.time.classList.toggle('final', !paused && v.status === STATUS.RUNNING && v.phaseRemainingMs <= 3000);
 

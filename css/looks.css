@@ -1,0 +1,196 @@
+/* Circle Champ – looks: anime-inspired alternatives to the standard design. A look is a second
+   set of the tokens from tokens.css, chosen with <html data-look="…">, plus a display font and
+   effects on the training screen. Own style only: no characters, logos or names from any series.
+   Without data-look nothing in this file applies, the standard design stays exactly as it is.
+
+   Rules for everything in here:
+   - Colours keep their meaning: work is the warm, loud phase, rest the calm green one.
+   - The remaining time stays the most readable thing on the screen (test/tokens.test.js checks
+     every look in light and dark).
+   - Moving parts animate transform and opacity only (compositor), are small, and stop with
+     the "animations" setting (data-anim="off") and with prefers-reduced-motion. */
+
+/* Display fonts, self-hosted so they work offline. SIL Open Font License 1.1, see fonts/. */
+@font-face {
+  font-family: "CC Bangers";
+  src: url("../fonts/Bangers-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+@font-face {
+  font-family: "CC Russo";
+  src: url("../fonts/RussoOne-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+/* ---------- token sets ---------- */
+
+:root[data-look="flammen"] {
+  --bg: light-dark(#fbf1e8, #140a06);
+  --surface: light-dark(#ffffff, #24130c);
+  --surface-2: light-dark(#fbf1e8, #331c12);
+  --bar: light-dark(rgb(251 241 232 / 0.84), rgb(28 14 9 / 0.8));
+  --thumb: light-dark(#ffffff, #5a3a2c);
+  --text: light-dark(#1f0f08, #ffffff);
+  --text-2: light-dark(#6b4a3c, #c9aa9b);
+  --text-3: light-dark(#9a7c6f, #8f7468);
+  --accent: light-dark(#b3390b, #ff9a4d);
+  --accent-tint: light-dark(rgb(214 73 16 / 0.12), rgb(255 138 51 / 0.18));
+  --accent-fill: #ff7a1a;
+  --accent-fill-top: #ff9433;
+  --accent-fill-bottom: #f25c05;
+  --on-accent: #2b0d00;
+
+  --phase-prep-top: #96560a;      --phase-prep: #8a4b06;      --phase-prep-bottom: #6f3a03;
+  --phase-warmup-top: #b0520a;    --phase-warmup: #a44806;    --phase-warmup-bottom: #863703;
+  --phase-work-top: #d63f12;      --phase-work: #c7300f;      --phase-work-bottom: #9c1608;
+  --phase-rest-top: #127a57;      --phase-rest: #0f6b4f;      --phase-rest-bottom: #0a543d;
+  --phase-roundRest-top: #7a3fb0; --phase-roundRest: #6b339e; --phase-roundRest-bottom: #532580;
+  --phase-cooldown-top: #2a6a8c;  --phase-cooldown: #235d7c;  --phase-cooldown-bottom: #194862;
+
+  --aura: #ffd24a;                 /* glow around the ring */
+  --aura-rest: #ffe9c2;
+  --fx-line: rgb(255 226 150 / 0.2);
+  --fx-dot: rgb(60 8 0 / 0.26);
+}
+
+:root[data-look="ninja"] {
+  --bg: light-dark(#eef0f6, #07080f);
+  --surface: light-dark(#ffffff, #141726);
+  --surface-2: light-dark(#eef0f6, #1f2338);
+  --bar: light-dark(rgb(238 240 246 / 0.84), rgb(12 14 24 / 0.8));
+  --thumb: light-dark(#ffffff, #454a66);
+  --text: light-dark(#0c1020, #ffffff);
+  --text-2: light-dark(#50566b, #a9aec4);
+  --text-3: light-dark(#858aa0, #747a94);
+  --accent: light-dark(#3a35c9, #9a96ff);
+  --accent-tint: light-dark(rgb(58 53 201 / 0.1), rgb(143 139 255 / 0.18));
+  --accent-fill: #d0203a;
+  --accent-fill-top: #dc2941;
+  --accent-fill-bottom: #b8162d;
+  --on-accent: #ffffff;
+
+  --phase-prep-top: #33589c;      --phase-prep: #2c4f8f;      --phase-prep-bottom: #213d72;
+  --phase-warmup-top: #96620c;    --phase-warmup: #8a5a0a;    --phase-warmup-bottom: #6e4705;
+  --phase-work-top: #d0203a;      --phase-work: #bd1830;      --phase-work-bottom: #8a0e22;
+  --phase-rest-top: #117a70;      --phase-rest: #0f6f66;      --phase-rest-bottom: #0a5751;
+  --phase-roundRest-top: #4d42d6; --phase-roundRest: #4338ca; --phase-roundRest-bottom: #3229a3;
+  --phase-cooldown-top: #24758f;  --phase-cooldown: #1f6a86;  --phase-cooldown-bottom: #175369;
+
+  --aura: #9fdcff;
+  --aura-rest: #d5e6ff;
+  --fx-line: rgb(255 255 255 / 0.17);
+  --fx-dot: rgb(10 0 20 / 0.3);
+}
+
+/* ---------- display font: headings and the training screen, never running text ---------- */
+
+:root[data-look] { --font-display: "CC Bangers", var(--font); --display-tracking: 0.03em; --time-cell: 0.56em; }
+:root[data-look][data-font="russo"] { --font-display: "CC Russo", var(--font); --display-tracking: 0; --time-cell: 0.74em; }
+
+:root[data-look] :is(.large-title h1, .section-title, .circuit-head h3, .done h1, .run-phase > span:first-child, .run-exercise, .run-time, .circuit-duration) {
+  font-family: var(--font-display);
+  font-weight: 400;            /* both fonts have one weight; a faked bold would smear them */
+  font-synthesis: none;
+  letter-spacing: var(--display-tracking);
+}
+:root[data-look] .large-title h1 { font-size: calc(var(--t-large) * 1.2); line-height: 1.05; }
+:root[data-look] .section-title { font-size: calc(var(--t-title3) * 1.2); }
+:root[data-look] .circuit-head h3 { font-size: calc(var(--t-title3) * 1.15); line-height: 1.15; }
+/* the display fonts run narrower than the system font: larger, so they read as far */
+:root[data-look] .run-phase > span:first-child { font-size: 1.45em; letter-spacing: 0.08em; }
+:root[data-look]:not([data-font="russo"]) .run-time { font-size: min(27vw, 15dvh, 122px); }
+:root[data-look]:not([data-font="russo"]) .run-time[data-long] { font-size: min(20vw, 11.5dvh, 94px); }
+/* the display fonts have no tabular figures: every character of the time gets the same cell,
+   so the number does not wobble from second to second (run.js wraps the characters) */
+:root[data-look] .run-time { letter-spacing: 0; }
+:root[data-look] .run-time span { display: inline-block; width: var(--time-cell); text-align: center; }
+:root[data-look] .run-time span.sep { width: calc(var(--time-cell) * 0.55); }
+:root[data-look] .run-time > div { display: flex; justify-content: center; }
+
+/* ---------- training screen effects ---------- */
+
+.run-fx, .ring-aura { display: none; }
+
+/* Speed lines and manga raster: one viewport-sized layer behind everything, visible in the
+   work phase only. The pictures are static gradients; only the layer's opacity (and a short
+   scale when the phase starts) changes. */
+:root[data-look] .run-fx {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--d-base) ease;
+  /* its own layer: the gradients are painted once, not again each time the number changes */
+  will-change: opacity;
+}
+:root[data-look] .run[data-phase="work"] .run-fx { opacity: 1; animation: fx-in 460ms var(--ease-out); }
+:root[data-look] .run[data-paused] .run-fx { opacity: 0.45; }
+@keyframes fx-in { from { opacity: 0; transform: scale(1.14); } }
+
+/* focus lines: thin wedges running to the ring's centre, three uneven rhythms laid over each
+   other so they look hand-drawn; the middle stays clear for the time */
+.fx-lines {
+  position: absolute;
+  inset: 0;
+  --c: 50% 47%;
+  background:
+    repeating-conic-gradient(from 2deg at var(--c), transparent 0 5.2deg, var(--fx-line) 5.5deg 6.1deg, transparent 6.4deg 9deg),
+    repeating-conic-gradient(from 11deg at var(--c), transparent 0 12.4deg, var(--fx-line) 12.8deg 14.2deg, transparent 14.6deg 23deg),
+    repeating-conic-gradient(from 5deg at var(--c), transparent 0 2.1deg, var(--fx-line) 2.3deg 2.6deg, transparent 2.8deg 13deg);
+  -webkit-mask-image: radial-gradient(circle at var(--c), transparent 0 34%, #000 62%);
+  mask-image: radial-gradient(circle at var(--c), transparent 0 34%, #000 62%);
+}
+/* raster: dots that thin out towards the middle of the screen, from the bottom and the top edge */
+.fx-dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--fx-dot) 0 34%, transparent 37%);
+  background-size: 10px 10px;
+  -webkit-mask-image: linear-gradient(to top, #000 0, transparent 30%, transparent 86%, rgb(0 0 0 / 0.7) 100%);
+  mask-image: linear-gradient(to top, #000 0, transparent 30%, transparent 86%, rgb(0 0 0 / 0.7) 100%);
+}
+
+/* Energy aura: a soft glow just outside the ring and a wreath of rays, painted once into one
+   small layer (a bit larger than the ring) that swings and breathes.
+   Movement and picture are two elements on purpose: .aura-move carries only the animation,
+   .aura-art only the gradients. While an animation runs, the browser recomputes the style of
+   the animated element again and again; with the gradients on that element it re-resolved
+   them each time (measured with tools/perf.mjs: +25 % main thread, with the split about +0). */
+:root[data-look] .ring-aura {
+  display: block;
+  position: absolute;
+  inset: -15%;
+  pointer-events: none;
+  --aura-c: var(--aura-rest);
+  opacity: 0.55;
+  transition: opacity var(--d-base) ease;
+}
+:root[data-look] .run[data-phase="work"] .ring-aura { --aura-c: var(--aura); opacity: 1; }
+:root[data-look] .run[data-paused] .ring-aura { opacity: 0.3; }
+.aura-move { position: absolute; inset: 0; will-change: transform, opacity; animation: aura 3.2s ease-in-out infinite alternate; }
+.aura-art, .aura-art::before, .aura-art::after { position: absolute; inset: 0; border-radius: 50%; }
+.aura-art::before, .aura-art::after { content: ""; }
+/* the ring's outer edge lies at 48.5 of 65 → 75 % of this box: the glow starts right there */
+.aura-art::before {
+  background: radial-gradient(closest-side, transparent 74%, color-mix(in srgb, var(--aura-c) 75%, transparent) 77%, color-mix(in srgb, var(--aura-c) 26%, transparent) 86%, transparent 99%);
+}
+.aura-art::after {
+  background: repeating-conic-gradient(from 0deg, transparent 0 4deg, color-mix(in srgb, var(--aura-c) 55%, transparent) 7deg, transparent 10deg 15deg, color-mix(in srgb, var(--aura-c) 35%, transparent) 17deg, transparent 19deg 24deg);
+  -webkit-mask-image: radial-gradient(closest-side, transparent 75%, #000 78%, rgb(0 0 0 / 0.35) 89%, transparent 99%);
+  mask-image: radial-gradient(closest-side, transparent 75%, #000 78%, rgb(0 0 0 / 0.35) 89%, transparent 99%);
+}
+@keyframes aura {
+  from { opacity: 0.62; transform: rotate(-9deg) scale(0.985); }
+  to { opacity: 1; transform: rotate(9deg) scale(1.035); }
+}
+:root[data-look] .run[data-paused] .aura-move { animation-play-state: paused; }
+
+/* animations off: the pictures stay, nothing moves */
+:root[data-anim="off"] .aura-move,
+:root[data-anim="off"] .run[data-phase="work"] .run-fx { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .aura-move, :root[data-look] .run[data-phase="work"] .run-fx { animation: none; }
+}
