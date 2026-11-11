@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Circle Champ</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#17171c"/>
+      <stop offset="1" stop-color="#0b0b0f"/>
+    </linearGradient>
+    <linearGradient id="ring" gradientUnits="userSpaceOnUse" x1="0" y1="34" x2="0" y2="478">
+      <stop offset="0" stop-color="#4be077"/>
+      <stop offset="1" stop-color="#28c14e"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <path d="M432.9 198.52A186 186 0 1 1 256 70" fill="none" stroke="url(#ring)" stroke-width="72" stroke-linecap="round"/>
+  <polygon points="256,162 285.39,221.55 351.11,231.1 303.55,277.45 314.78,342.9 256,312 197.22,342.9 208.45,277.45 160.89,231.1 226.61,221.55" fill="#fff" stroke="#fff" stroke-width="28" stroke-linejoin="round"/>
+</svg>

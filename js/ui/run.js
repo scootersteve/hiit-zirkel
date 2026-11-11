@@ -10,6 +10,7 @@ import { formatElapsed, formatRemaining } from '../core/format.js';
 import * as audio from '../platform/audio.js';
 import * as speech from '../platform/speech.js';
 import * as wake from '../platform/wakelock.js';
+import { characterSrc, currentLook } from '../data/looks.js';
 import { setText, icon, mount, confirmSheet } from './dom.js';
 
 // In a look, every character of the remaining time sits in its own cell: the display fonts have
@@ -48,6 +49,7 @@ const START_SIGNAL = {
 const TEMPLATE = `
   <section class="run" data-phase="prep">
     <div class="run-photo" aria-hidden="true"></div>
+    <img class="run-buddy" alt="" aria-hidden="true" width="240" height="320" hidden>
     <div class="run-fx" aria-hidden="true"><div class="fx-lines"></div><div class="fx-dots"></div></div>
     <header class="run-top">
       <button class="run-abort" data-action="abort">Abbrechen</button>
@@ -93,6 +95,13 @@ export function showRun(root, { circuit, settings, photoUrl = null, onEnd }) {
   if (photoUrl) {
     screen.classList.add('has-photo');
     screen.querySelector('.run-photo').style.backgroundImage = `url("${photoUrl}")`;
+  }
+  // the look's figure: stands in a corner during the breaks, steps aside while you work
+  const buddySrc = characterSrc(currentLook(), 'ready');
+  if (buddySrc) {
+    const buddy = screen.querySelector('.run-buddy');
+    buddy.src = buddySrc;
+    buddy.hidden = false;
   }
   const els = Object.fromEntries([...screen.querySelectorAll('[data-el]')].map((el) => [el.dataset.el, el]));
   const toggleButton = screen.querySelector('[data-action="toggle"]');

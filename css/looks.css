@@ -160,6 +160,42 @@
 :root[data-look] .run-time span.sep { width: calc(var(--time-cell) * 0.55); }
 :root[data-look] .run-time > div { display: flex; justify-content: center; }
 
+/* ---------- the look's figure (original drawings in img/characters/) ---------- */
+
+/* start screen: next to the title, standing on the line under it */
+.home-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+/* the title never breaks inside a word; when it gets tight (large text, 320 px) the figure
+   shrinks instead */
+.home-head h1 { min-width: min-content; overflow-wrap: normal; }
+.home-buddy { flex: 0 1 auto; min-width: 0; width: auto; height: 5.75rem; margin: -6px 0 -4px; object-fit: contain; object-position: right bottom; }
+
+/* end screen: cheering, in place of the check mark */
+.done-buddy { width: auto; height: min(34dvh, 15rem); margin-top: -18px; animation: buddy-in 520ms var(--ease-out); }
+@keyframes buddy-in { from { opacity: 0; transform: translateY(18px) scale(0.92); } }
+
+/* settings: the face in the design list (the drawing is 240 × 320, the head sits in the upper part) */
+.look-face { flex: none; width: 48px; height: 48px; border-radius: 50%; background: var(--surface-2) 50% 16% / 205% auto no-repeat; }
+.look-cell:has(.look-face) .look-dots i { width: 14px; height: 14px; margin-left: -5px; }
+
+/* training: bottom right above the controls, behind the texts, only while resting */
+.run-buddy {
+  position: absolute;
+  right: 6px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+  z-index: -1;
+  width: auto;
+  height: min(17dvh, 150px);
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity var(--d-base) ease, transform var(--d-base) var(--ease-out);
+  will-change: opacity;
+}
+.run-buddy[hidden] { display: none; }
+.run[data-phase="work"] .run-buddy { opacity: 0; transform: translateY(12px); }
+.run[data-paused] .run-buddy { opacity: 0.5; }
+@media (max-height: 640px) { .run-buddy { display: none; } }
+@media (prefers-reduced-motion: reduce) { .done-buddy { animation: none; } .run-buddy { transition: none; } }
+
 /* ---------- training screen effects ---------- */
 
 .run-fx, .ring-aura { display: none; }

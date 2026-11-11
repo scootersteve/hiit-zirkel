@@ -13,3 +13,14 @@ export const LOOKS = Object.freeze([
 
 export const LOOK_IDS = Object.freeze(LOOKS.map((l) => l.id));
 export const lookById = (id) => LOOKS.find((l) => l.id === id) || LOOKS[0];
+
+// Every look except "standard" has its own figure (original drawings, img/characters/), in two
+// poses: "ready" (start screen, breaks in the training) and "cheer" (end screen).
+export const CHARACTER_POSES = Object.freeze(['ready', 'cheer']);
+/** Path of a look's figure, or null for the standard design and unknown looks. */
+export function characterSrc(look, pose = 'ready') {
+  const id = lookById(look).id;
+  return id === 'standard' || !CHARACTER_POSES.includes(pose) ? null : `img/characters/${id}-${pose}.svg`;
+}
+/** The look that is showing right now (set on <html> by platform/theme.js). */
+export const currentLook = () => (typeof document === 'undefined' ? 'standard' : document.documentElement.dataset.look || 'standard');

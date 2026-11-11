@@ -193,8 +193,13 @@ try {
   await waitEval(`document.querySelector('#app main')`);
   const lookAfter = await evaluate(`({ look: document.documentElement.dataset.look, anim: document.documentElement.dataset.anim, stored: localStorage.getItem('zd-look') })`);
   check('Design: bleibt nach Reload, "Bewegte Effekte aus" ebenso', lookAfter.look === 'flammen' && lookAfter.anim === 'off' && lookAfter.stored === 'flammen', JSON.stringify(lookAfter));
+  await waitEval(`document.querySelector('.home-buddy')?.complete`);
+  const buddy = await evaluate(`(() => { const b = document.querySelector('.home-buddy'); return { src: b.getAttribute('src'), w: b.naturalWidth, alt: b.alt }; })()`);
+  check('Design: Figur auf der Startseite geladen (rein dekorativ, ohne Alt-Text)', buddy.src === 'img/characters/flammen-ready.svg' && buddy.w > 0 && buddy.alt === '', JSON.stringify(buddy));
   await evaluate(`document.querySelector('[data-card="start"][data-id="sample-quick"]').click(); true`);
   await waitEval(`document.querySelector('.run')`);
+  const runBuddy = await evaluate(`(() => { const b = document.querySelector('.run-buddy'); return { hidden: b.hidden, src: b.getAttribute('src'), opacity: getComputedStyle(b).opacity }; })()`);
+  check('Training im Design: Figur steht im Vorlauf dabei', !runBuddy.hidden && runBuddy.src === 'img/characters/flammen-ready.svg' && Number(runBuddy.opacity) > 0.9, JSON.stringify(runBuddy));
   await evaluate(`document.querySelector('[data-action="skip"]').click(); true`); // prep → work
   await sleep(500);
   const fx = await evaluate(`({ phase: document.querySelector('.run').dataset.phase, aura: getComputedStyle(document.querySelector('.ring-aura')).display,
@@ -214,6 +219,9 @@ try {
   await evaluate(`(()=>{const t=document.querySelector('[data-toggle="animations"]'); t.checked=true; t.dispatchEvent(new Event('change',{bubbles:true})); return true;})()`);
   const lookOff = await evaluate(`({ look: document.documentElement.dataset.look ?? null, anim: document.documentElement.dataset.anim ?? null, stored: localStorage.getItem('zd-look'), bg: getComputedStyle(document.body).backgroundColor })`);
   check('Design: zurück auf Standard entfernt das Design vollständig', lookOff.look === null && lookOff.anim === null && lookOff.stored === null, JSON.stringify(lookOff));
+  await goTab('home', `document.querySelector('[data-nav="new"]')`);
+  check('Standard-Design: keine Figur auf der Startseite', (await evaluate(`document.querySelector('.home-buddy')`)) === null);
+  await goTab('settings', `document.querySelector('[data-look="standard"]')`);
   await sleep(700);
 
   // Personal media: own picture and own sound are stored on the device, survive a reload,
@@ -474,8 +482,13 @@ try {
   await send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
 
   // Manifest advertises installable icons
-  const iconCount = await evaluate(`fetch('manifest.webmanifest').then(r=>r.json()).then(m=>(m.icons||[]).length)`);
-  check('Manifest mit Icons (installierbar)', iconCount >= 2, `${iconCount} Icons`);
+  const icons = await evaluate(`(async () => { const m = await (await fetch('manifest.webmanifest')).json(); const out = [];
+    for (const i of m.icons || []) { const r = await fetch(i.src); out.push({ src: i.src, purpose: i.purpose, ok: r.ok && Number(r.headers.get('content-length') || 1) > 0 }); }
+    const fav = document.querySelector('link[rel="icon"][type="image/svg+xml"]'); const touch = document.querySelector('link[rel="apple-touch-icon"]');
+    return { icons: out, fav: fav ? (await fetch(fav.href)).ok : false, touch: touch ? (await fetch(touch.href)).ok : false, name: m.name }; })()`);
+  check('Manifest mit Icons (installierbar): alle Dateien da, eigenes maskable-Symbol, SVG-Favicon, Name Circle Champ',
+    icons.icons.length >= 3 && icons.icons.every((i) => i.ok) && icons.icons.some((i) => i.purpose === 'maskable') && icons.fav && icons.touch && icons.name === 'Circle Champ',
+    `${icons.icons.length} Icons`);
 
   // ---- share link / import / export ----
 

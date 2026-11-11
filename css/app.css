@@ -413,7 +413,9 @@ body.running { overflow: hidden; overscroll-behavior: none; }
     linear-gradient(var(--photo-scrim), var(--photo-scrim));
 }
 
-.run-top { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, max-content); align-items: center; gap: 10px; font-size: var(--t-subhead); }
+/* the elapsed time keeps its width and stays in one line; on narrow screens the position text
+   on the right gives way and wraps */
+.run-top { display: grid; grid-template-columns: auto minmax(max-content, 1fr) minmax(0, max-content); align-items: center; gap: 10px; font-size: var(--t-subhead); }
 .run-abort {
   min-height: 44px; /* deliberately smaller than the training controls and away from them */
   padding: 0 14px;
@@ -426,7 +428,7 @@ body.running { overflow: hidden; overscroll-behavior: none; }
   transition: background-color var(--d-press) ease, transform var(--d-press) var(--ease-out);
 }
 .run-abort.is-pressed, .run-abort:active { background: rgb(0 0 0 / 0.35); transform: scale(0.95); }
-.run-elapsed { font-size: var(--t-title3); font-weight: 700; text-align: center; }
+.run-elapsed { font-size: var(--t-title3); font-weight: 700; text-align: center; white-space: nowrap; }
 .run-pos { text-align: right; font-weight: 600; overflow-wrap: anywhere; }
 
 .run-progress { height: 5px; margin-top: 10px; border-radius: 3px; background: rgb(255 255 255 / 0.25); overflow: hidden; }

@@ -18,7 +18,7 @@ function walk(dir, acc = []) {
   return acc;
 }
 
-const rootFiles = ['index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
+const rootFiles = ['index.html', 'manifest.webmanifest', 'favicon.svg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
 // fonts/ and img/ only with the files the app loads (no licence texts, no sources)
 const media = [...walk('fonts'), ...(existsSync(join(ROOT, 'img')) ? walk('img') : [])].filter((p) => /\.(ttf|woff2|svg|png|txt)$/.test(p));
 const assets = ['./', ...rootFiles, ...walk('css'), ...walk('js'), ...media].map((p) => (p === './' ? p : `./${p}`));

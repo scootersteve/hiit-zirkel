@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Circle Champ (maskable)</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#17171c"/>
+      <stop offset="1" stop-color="#0b0b0f"/>
+    </linearGradient>
+    <linearGradient id="ring" gradientUnits="userSpaceOnUse" x1="0" y1="72" x2="0" y2="440">
+      <stop offset="0" stop-color="#4be077"/>
+      <stop offset="1" stop-color="#28c14e"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="158" fill="none" stroke="#fff" stroke-opacity=".08" stroke-width="52"/>
+  <path d="M406.27 207.18A158 158 0 1 1 256 98" fill="none" stroke="url(#ring)" stroke-width="52" stroke-linecap="round"/>
+  <polygon points="256,179 280.1,227.83 333.99,235.66 294.99,273.67 304.2,327.34 256,302 207.8,327.34 217.01,273.67 178.01,235.66 231.9,227.83" fill="#fff" stroke="#fff" stroke-width="24" stroke-linejoin="round"/>
+</svg>

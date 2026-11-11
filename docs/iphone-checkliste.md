@@ -68,3 +68,22 @@ Am schnellsten mit dem Zirkel **"Schnelltest (alle Signale)"** (2:33 min).
 | 2 | Symbol auf dem Home-Bildschirm | heißt weiter "Zirkel Dojo": iOS übernimmt den Namen nur beim Hinzufügen. Für den neuen Namen: erst in der alten App Einstellungen → Sicherung herunterladen, dann Symbol löschen, Seite in Safari öffnen, neu "Zum Home-Bildschirm", Sicherung importieren |
 | 3 | Vor Punkt 2 prüfen | Ob die Daten das Löschen des Symbols überstehen, ist nicht getestet. Deshalb zuerst die Sicherung |
 | 4 | Alte Sicherungsdatei (zirkel-dojo-….json) importieren | funktioniert weiter, das Format ist gleich geblieben |
+
+## Designs, Figuren, Personalisierung, Symbol 0.8.0 (Branch feature/teil-c, noch nicht veröffentlicht)
+
+| # | Prüfpunkt | Erwartung |
+|---|---|---|
+| 1 | Einstellungen → Design: Flammen, Ninja, Wildnis, Donner nacheinander wählen | Farben, Titelschrift und Figur wechseln sofort, in Hell und Dunkel alles lesbar |
+| 2 | App schließen und neu öffnen | gewähltes Design ist sofort da, kein kurzes Aufblitzen des Standard-Designs |
+| 3 | Training in einem Design starten (Schnelltest) | Belastung: Linien, Raster und Aura um den Ring. Pausen: nur Aura, Figur steht unten rechts. Restzeit aus 2 m lesbar, Zahl wackelt nicht |
+| 4 | Dasselbe ein paar Minuten laufen lassen | flüssig, iPhone wird nicht warm, kein Ruckeln des Rings (im Browser gemessen: etwa 10 bis 15 % mehr Rechenzeit als Standard) |
+| 5 | Einstellungen → "Bewegte Effekte" aus, Training starten | Aura und Linien stehen still |
+| 6 | iPhone: Einstellungen → Bedienungshilfen → Bewegung reduzieren an | Effekte stehen ebenfalls still |
+| 7 | Training bis zum Ende | Figur jubelt auf dem Abschlussbildschirm, bei Abbruch nur das schlichte Zeichen |
+| 8 | Statusleiste (Uhr, Akku) in jedem Design, hell und dunkel | lesbar, Farbe passt zum Seitenhintergrund |
+| 9 | Persönlich → Hintergrundbild: Foto aus der Mediathek wählen | Vorschau erscheint, "gespeichert". Training: Foto liegt abgedunkelt hinter der Phasenfarbe, Restzeit bleibt lesbar, auch bei sehr hellem Foto |
+| 10 | Persönlich → Ton "Ende": kurze Tondatei wählen (z.B. aus "Dateien"), "Anhören" | Ton spielt. Im Training kommt er am Ende statt der Fanfare, auch mit Stummschalter im Modus "Immer hörbar" |
+| 11 | Ton länger als 8 s wählen | wird mit Begründung abgelehnt |
+| 12 | Sicherung herunterladen, Datei ansehen | enthält weder Bild noch Ton |
+| 13 | App vom Home-Bildschirm löschen und neu hinzufügen | neues Symbol (grüner Ring mit Stern), Name "Circle Champ". Vorher Sicherung herunterladen, Bild und Töne müssen danach neu gewählt werden |
+| 14 | Flugmodus, App neu öffnen, Design wechseln | Schrift und Figuren erscheinen auch offline |
