@@ -45,7 +45,7 @@ const segmented = (name, options, label) => `
 // One row per look: three colour dots, name, a line of description, a check on the chosen one.
 const lookCell = (look) => `
   <button class="cell look-cell" data-look="${look.id}" aria-pressed="false">
-    ${characterSrc(look.id) ? `<span class="look-face" aria-hidden="true" style="background-image:url('${characterSrc(look.id)}')"></span>` : ''}
+    <span class="look-face${characterSrc(look.id) ? '' : ' plain'}" aria-hidden="true" style="background-image:url('${characterSrc(look.id) || 'favicon.svg'}')"></span>
     <span class="look-dots" aria-hidden="true">${look.swatch.map((c) => `<i style="background:${c}"></i>`).join('')}</span>
     <span class="cell-label">${look.name}<span class="cell-hint">${look.hint}</span></span>
     <span class="look-check" aria-hidden="true">${icon('check')}</span>
@@ -59,7 +59,7 @@ const mediaGroup = (key) => {
   <div class="group media-group" data-media="${key}">
     <div class="cell">
       ${image ? '<span class="media-thumb" data-el="thumb" hidden></span>' : ''}
-      <span class="cell-label">${esc(label)}<span class="cell-hint" data-el="state"></span></span>
+      <span class="cell-label">${esc(label)}<span class="cell-hint" data-el="state"></span>${MEDIA_SLOTS[key].when ? `<span class="cell-hint">${esc(MEDIA_SLOTS[key].when)}</span>` : ''}</span>
     </div>
     <label class="cell accent file-btn">
       <span class="cell-label" data-el="pick"></span>
@@ -69,6 +69,16 @@ const mediaGroup = (key) => {
     <button class="cell danger-text" data-media-remove="${key}" hidden>Entfernen</button>
   </div>`;
 };
+
+// One object URL for the stored picture, reused as long as the picture is the same record;
+// a new picture frees the old URL. (A URL per visit of this screen would keep a copy each time.)
+let thumb = { record: null, url: null };
+function thumbUrlFor(record) {
+  if (record === thumb.record) return thumb.url;
+  if (thumb.url) URL.revokeObjectURL(thumb.url);
+  thumb = { record, url: record ? recordUrl(record) : null };
+  return thumb.url;
+}
 
 const toggleCell = (key, label, hint, checked) => `
   <label class="cell">
@@ -252,7 +262,6 @@ export function showSettings(root, { db, settings, media = {}, nav = 'none', onS
     mediaStatus.hidden = false;
     mediaStatus.classList.toggle('err', !ok);
   };
-  let thumbUrl = null;
   function renderMedia(key) {
     const group = $(`[data-media="${key}"]`);
     const record = media[key];
@@ -261,10 +270,9 @@ export function showSettings(root, { db, settings, media = {}, nav = 'none', onS
     if (image) {
       state.textContent = record ? `Eigenes Bild, ${formatBytes(record.bytes.byteLength)}` : 'Kein Bild gewählt';
       const thumb = group.querySelector('[data-el="thumb"]');
-      if (thumbUrl) URL.revokeObjectURL(thumbUrl);
-      thumbUrl = record ? recordUrl(record) : null;
+      const url = thumbUrlFor(record);
       thumb.hidden = !record;
-      thumb.style.backgroundImage = record ? `url("${thumbUrl}")` : '';
+      thumb.style.backgroundImage = record ? `url("${url}")` : '';
     } else {
       const length = record?.seconds ? `, ${String(record.seconds).replace('.', ',')} s` : '';
       state.textContent = record ? `${record.name || 'Eigener Ton'}${length}` : 'Eingebauter Ton';
@@ -275,8 +283,9 @@ export function showSettings(root, { db, settings, media = {}, nav = 'none', onS
   }
   MEDIA_KEYS.forEach(renderMedia);
 
-  // a second file chosen while the first is still being stored is ignored
-  const storeMedia = once(async (key, input) => {
+  // a second file for the SAME place, chosen while the first is still being stored, is ignored;
+  // the three places do not block each other
+  const storeMedia = async (key, input) => {
     const file = input.files?.[0];
     if (!file) return;
     const { kind, label } = MEDIA_SLOTS[key];
@@ -305,9 +314,10 @@ export function showSettings(root, { db, settings, media = {}, nav = 'none', onS
     } finally {
       input.value = ''; // lets the same file be chosen again
     }
-  });
+  };
+  const storers = Object.fromEntries(MEDIA_KEYS.map((key) => [key, once((input) => storeMedia(key, input))]));
   screen.querySelectorAll('[data-media-input]').forEach((input) =>
-    input.addEventListener('change', () => storeMedia(input.dataset.mediaInput, input)));
+    input.addEventListener('change', () => storers[input.dataset.mediaInput](input)));
 
   const removeMedia = once(async (key) => {
     const { kind, label } = MEDIA_SLOTS[key];
@@ -387,10 +397,13 @@ export function showSettings(root, { db, settings, media = {}, nav = 'none', onS
     if (target.dataset.mediaRemove) {
       removeMedia(target.dataset.mediaRemove);
     } else if (target.dataset.mediaPlay) {
+      // unlock inside the tap (iOS), then wait until the own sound is decoded for this context:
+      // otherwise the very first tap after start or a mode change would play the built-in tone
+      const signal = MEDIA_SLOTS[target.dataset.mediaPlay].signal;
       audio.setMode(settings.soundMode);
       audio.setVolume(settings.volume);
       audio.unlock();
-      audio.play(MEDIA_SLOTS[target.dataset.mediaPlay].signal);
+      audio.whenReady(signal).then(() => audio.play(signal));
     } else if (target.dataset.look) {
       settings.look = applyLook(target.dataset.look, settings.animations);
       renderLooks();

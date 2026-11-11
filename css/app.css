@@ -402,7 +402,6 @@ body.running { overflow: hidden; overscroll-behavior: none; }
 
 /* own background picture: its own layer (painted once), picture → dark scrim → phase colour */
 .run-photo { display: none; }
-.run.has-photo { background: #000; }
 .run.has-photo .run-photo { display: block; position: absolute; inset: 0; z-index: -2; background: center / cover no-repeat; will-change: transform; }
 .run.has-photo .run-photo::after {
   content: "";

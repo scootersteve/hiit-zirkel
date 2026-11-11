@@ -41,6 +41,11 @@ export function migrateSettings(saved) {
   // version does not know (backup from a newer one) falls back to it as well.
   if (!LOOK_IDS.includes(out.look)) out.look = 'standard';
   if (typeof out.animations !== 'boolean') out.animations = true;
+  // values from an imported file are not trusted: a wrong type falls back to the default
+  // (a text as volume would otherwise stop the training from starting)
+  if (!['playback', 'ambient'].includes(out.soundMode)) delete out.soundMode;
+  if (!(typeof out.volume === 'number' && out.volume >= 0.1 && out.volume <= 1)) delete out.volume;
+  for (const key of ['voice', 'countdownBeeps', 'halfwayBeep']) if (typeof out[key] !== 'boolean') delete out[key];
   out.settingsVersion = SETTINGS_VERSION;
   return out;
 }

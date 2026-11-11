@@ -27,6 +27,8 @@ export const SIGNAL_NAMES = Object.keys(SIGNALS);
 // decoded for the current context; a new context (after a mode change) decodes them again.
 const customBytes = new Map();
 const customBuffers = new Map();
+const decoding = new Map(); // name → promise of the buffer for the current context
+let customSource = null; // the own sound that is playing, so a countdown or a new start can stop it
 
 let ctx = null;
 let master = null;
@@ -52,32 +54,55 @@ export function setMode(newMode) {
     ctx = null;
     master = null;
     customBuffers.clear();
+    decoding.clear();
   }
   applySessionType();
 }
 
 // decodeAudioData empties the buffer it is given, so it always gets a copy. Callback form:
-// older Safari versions have no promise form.
-const decode = (context, bytes) => new Promise((resolve, reject) => context.decodeAudioData(bytes.slice(0), resolve, reject));
+// older Safari versions have no promise form. Newer browsers ALSO return a promise that rejects
+// on an undecodable file; it is caught here, the callback already reports the error.
+const decode = (context, bytes) =>
+  new Promise((resolve, reject) => {
+    const returned = context.decodeAudioData(bytes.slice(0), resolve, reject);
+    returned?.catch?.(() => {});
+  });
 
 function decodeCustom(name, bytes) {
   if (!ctx) return Promise.resolve(null);
   const own = ctx;
-  return decode(own, bytes).then((buffer) => {
-    if (own === ctx && customBytes.get(name) === bytes) customBuffers.set(name, buffer); // still current?
-    return buffer;
-  });
+  const pending = decode(own, bytes)
+    .then((buffer) => {
+      if (own === ctx && customBytes.get(name) === bytes) customBuffers.set(name, buffer); // still current?
+      return buffer;
+    })
+    .catch(() => null); // undecodable: the built-in tone stays
+  decoding.set(name, pending);
+  return pending;
+}
+
+/** Resolves once an own sound for `name` is ready to play (at once if there is none). */
+export const whenReady = (name) => decoding.get(name) || Promise.resolve(null);
+
+function stopCustom() {
+  try {
+    customSource?.stop();
+  } catch {
+    /* already ended */
+  }
+  customSource = null;
 }
 
 /** Replaces a built-in signal by an own sound (bytes of an audio file); null restores the tone. */
 export function setCustomSound(name, bytes) {
   customBuffers.delete(name);
+  decoding.delete(name);
   if (!bytes) {
     customBytes.delete(name);
     return Promise.resolve(null);
   }
   customBytes.set(name, bytes);
-  return decodeCustom(name, bytes).catch(() => null);
+  return decodeCustom(name, bytes);
 }
 
 /** Length in seconds of an audio file, to check it before it is stored. Rejects if undecodable. */
@@ -104,8 +129,9 @@ export function unlock() {
     master.connect(ctx.destination);
     const own = ctx;
     own.onstatechange = () => own === ctx && stateListeners.forEach((fn) => fn(own.state));
-    for (const [name, bytes] of customBytes) decodeCustom(name, bytes).catch(() => {});
+    for (const [name, bytes] of customBytes) decodeCustom(name, bytes);
   }
+  stopCustom(); // an own end sound must not run on into the next training or preview
   if (ctx.state !== 'running') ctx.resume().catch(() => {});
   // One silent sample fully wakes up the audio output on iOS.
   const src = ctx.createBufferSource();
@@ -143,12 +169,19 @@ export function play(name) {
     ctx.resume().catch(() => {});
     return 0;
   }
+  // the countdown has priority: a long own sound stops at the first countdown tone
+  if (name === 'countdown') stopCustom();
   const custom = customBuffers.get(name);
   if (custom) {
+    stopCustom();
     const src = ctx.createBufferSource();
     src.buffer = custom;
     src.connect(master);
+    src.onended = () => {
+      if (customSource === src) customSource = null;
+    };
     src.start(ctx.currentTime + 0.02);
+    customSource = src;
     return Math.round(custom.duration * 1000);
   }
   let t = ctx.currentTime + 0.02;

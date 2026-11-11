@@ -98,10 +98,26 @@ export function showRun(root, { circuit, settings, photoUrl = null, onEnd }) {
   }
   // the look's figure: stands in a corner during the breaks, steps aside while you work
   const buddySrc = characterSrc(currentLook(), 'ready');
-  if (buddySrc) {
-    const buddy = screen.querySelector('.run-buddy');
+  const buddy = buddySrc ? screen.querySelector('.run-buddy') : null;
+  if (buddy) {
     buddy.src = buddySrc;
     buddy.hidden = false;
+  }
+  // Long exercise names on small phones can reach down to the figure. Once per phase (one layout
+  // read, not per second) it is checked against the texts and hidden for that phase if it would
+  // cover one of them.
+  let buddyPhase = -1;
+  function placeBuddy(v) {
+    if (!buddy || v.phaseIndex === buddyPhase) return;
+    buddyPhase = v.phaseIndex;
+    buddy.classList.remove('crowded');
+    const b = buddy.getBoundingClientRect();
+    const covers = [els.label, els.exercise, els.side].some((el) => {
+      if (el.hidden || !el.textContent) return false;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.bottom > b.top + 6 && r.right > b.left + 6 && r.left < b.right - 6;
+    });
+    buddy.classList.toggle('crowded', covers);
   }
   const els = Object.fromEntries([...screen.querySelectorAll('[data-el]')].map((el) => [el.dataset.el, el]));
   const toggleButton = screen.querySelector('[data-action="toggle"]');
@@ -179,6 +195,8 @@ export function showRun(root, { circuit, settings, photoUrl = null, onEnd }) {
     setText(els.exercise, line.name);
     els.side.hidden = !line.sideLabel;
     if (line.sideLabel) setText(els.side, line.sideLabel);
+
+    placeBuddy(v);
 
     const toggleLabel = paused ? 'resume' : 'pause';
     if (toggleLabel !== lastToggleLabel) {

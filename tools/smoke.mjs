@@ -214,6 +214,33 @@ try {
   await waitEval(`document.querySelector('[data-action="home"]')`);
   await evaluate(`document.querySelector('[data-action="home"]').click(); true`);
   await waitEval(`document.querySelector('[data-nav="new"]')`);
+
+  // Small phone, long exercise name: the figure must never cover a text (it steps away instead)
+  await send('Emulation.setDeviceMetricsOverride', { width: 375, height: 667, deviceScaleFactor: 2, mobile: true });
+  const longName = {
+    name: 'Langer Name',
+    exercises: [{ id: 'x1', name: 'Kettlebell Kreuzheben einbeinig mit Rotation', sides: false }],
+    settings: { rounds: 1, workS: 30, restS: 0, roundRestS: 0, prepS: 10, warmupS: 0, cooldownS: 0 },
+  };
+  await send('Page.navigate', { url: 'about:blank' });
+  await send('Page.navigate', { url: `${BASE}#share=${encodeCircuit(longName)}` });
+  await waitEval(`document.querySelector('[data-screen="editor"] [data-action="start"]')`);
+  await sleep(400);
+  await evaluate(`document.querySelector('[data-screen="editor"] [data-action="start"]').click(); true`);
+  await waitEval(`document.querySelector('.run')`);
+  await sleep(300);
+  const crowd = await evaluate(`(() => { const b = document.querySelector('.run-buddy'); const shown = getComputedStyle(b).display !== 'none';
+    const br = b.getBoundingClientRect(); const texts = ['.run-label', '.run-exercise'].map((s) => document.querySelector(s).getBoundingClientRect());
+    const overlap = shown && texts.some((r) => r.width && r.bottom > br.top + 6 && r.right > br.left + 6 && r.left < br.right - 6);
+    return { shown, overlap, crowded: b.classList.contains('crowded') }; })()`);
+  check('Training 375 × 667: Figur verdeckt nie den Übungsnamen', crowd.overlap === false, JSON.stringify(crowd));
+  await evaluate(`document.querySelector('[data-action="abort"]').click(); true`);
+  await waitEval(`document.querySelector('dialog.sheet[open]')`);
+  await evaluate(`document.querySelector('dialog.sheet [data-sheet="ok"]').click(); true`);
+  await waitEval(`document.querySelector('[data-action="home"]')`);
+  await evaluate(`document.querySelector('[data-action="home"]').click(); true`);
+  await waitEval(`document.querySelector('[data-nav="new"]')`);
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
   await goTab('settings', `document.querySelector('[data-look="standard"]')`);
   await evaluate(`document.querySelector('[data-look="standard"]').click(); true`);
   await evaluate(`(()=>{const t=document.querySelector('[data-toggle="animations"]'); t.checked=true; t.dispatchEvent(new Event('change',{bubbles:true})); return true;})()`);

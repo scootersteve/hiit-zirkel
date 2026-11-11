@@ -75,15 +75,16 @@ Am schnellsten mit dem Zirkel **"Schnelltest (alle Signale)"** (2:33 min).
 |---|---|---|
 | 1 | Einstellungen → Design: Flammen, Ninja, Wildnis, Donner nacheinander wählen | Farben, Titelschrift und Figur wechseln sofort, in Hell und Dunkel alles lesbar |
 | 2 | App schließen und neu öffnen | gewähltes Design ist sofort da, kein kurzes Aufblitzen des Standard-Designs |
-| 3 | Training in einem Design starten (Schnelltest) | Belastung: Linien, Raster und Aura um den Ring. Pausen: nur Aura, Figur steht unten rechts. Restzeit aus 2 m lesbar, Zahl wackelt nicht |
-| 4 | Dasselbe ein paar Minuten laufen lassen | flüssig, iPhone wird nicht warm, kein Ruckeln des Rings (im Browser gemessen: etwa 10 bis 15 % mehr Rechenzeit als Standard) |
+| 3 | Training in einem Design starten (Schnelltest) | Belastung: Linien, Raster und Aura um den Ring. Pausen: nur Aura, Figur steht unten rechts (bei langem Übungsnamen weicht sie aus). Restzeit aus 2 m lesbar, Zahl wackelt nicht |
+| 4 | Dasselbe ein paar Minuten laufen lassen | flüssig, iPhone wird nicht warm, kein Ruckeln des Rings. Im Browser gemessen kostet ein Design mit Effekten 14 bis 37 % mehr Rechenzeit als Standard (je nach Lauf), absolut unter 2 s pro Minute, ohne Arbeit pro Bild. Wenn es auf dem iPhone ruckelt oder warm wird: "Bewegte Effekte" aus und notieren |
 | 5 | Einstellungen → "Bewegte Effekte" aus, Training starten | Aura und Linien stehen still |
 | 6 | iPhone: Einstellungen → Bedienungshilfen → Bewegung reduzieren an | Effekte stehen ebenfalls still |
 | 7 | Training bis zum Ende | Figur jubelt auf dem Abschlussbildschirm, bei Abbruch nur das schlichte Zeichen |
 | 8 | Statusleiste (Uhr, Akku) in jedem Design, hell und dunkel | lesbar, Farbe passt zum Seitenhintergrund |
-| 9 | Persönlich → Hintergrundbild: Foto aus der Mediathek wählen | Vorschau erscheint, "gespeichert". Training: Foto liegt abgedunkelt hinter der Phasenfarbe, Restzeit bleibt lesbar, auch bei sehr hellem Foto |
+| 9 | Persönlich → Hintergrundbild: Foto aus der Mediathek wählen, einmal Hochformat, einmal Querformat | Vorschau erscheint, "gespeichert". Foto steht richtig herum (iPhone-Fotos sind HEIC und tragen die Drehung als Zusatzangabe: nur am Gerät prüfbar). Training: Foto liegt abgedunkelt hinter der Phasenfarbe, Restzeit bleibt lesbar, auch bei sehr hellem Foto |
 | 10 | Persönlich → Ton "Ende": kurze Tondatei wählen (z.B. aus "Dateien"), "Anhören" | Ton spielt. Im Training kommt er am Ende statt der Fanfare, auch mit Stummschalter im Modus "Immer hörbar" |
 | 11 | Ton länger als 8 s wählen | wird mit Begründung abgelehnt |
+| 11a | Langen eigenen Ton (5 bis 8 s) für "Runde geschafft" bei kurzer Rundenpause (z.B. 10 s) | Ton bricht beim ersten Countdown-Ton ab, Countdown bleibt hörbar |
 | 12 | Sicherung herunterladen, Datei ansehen | enthält weder Bild noch Ton |
 | 13 | App vom Home-Bildschirm löschen und neu hinzufügen | neues Symbol (grüner Ring mit Stern), Name "Circle Champ". Vorher Sicherung herunterladen, Bild und Töne müssen danach neu gewählt werden |
 | 14 | Flugmodus, App neu öffnen, Design wechseln | Schrift und Figuren erscheinen auch offline |

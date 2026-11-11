@@ -175,7 +175,8 @@
 
 /* settings: the face in the design list (the drawing is 240 × 320, the head sits in the upper part) */
 .look-face { flex: none; width: 48px; height: 48px; border-radius: 50%; background: var(--surface-2) 50% 16% / 205% auto no-repeat; }
-.look-cell:has(.look-face) .look-dots i { width: 14px; height: 14px; margin-left: -5px; }
+.look-face.plain { background-size: cover; background-position: center; }
+.look-cell .look-dots i { width: 14px; height: 14px; margin-left: -5px; }
 
 /* training: bottom right above the controls, behind the texts, only while resting */
 .run-buddy {
@@ -193,6 +194,8 @@
 .run-buddy[hidden] { display: none; }
 .run[data-phase="work"] .run-buddy { opacity: 0; transform: translateY(12px); }
 .run[data-paused] .run-buddy { opacity: 0.5; }
+/* run.js measures once per phase whether the figure would touch a text; then it stays away */
+.run-buddy.crowded { display: none; }
 @media (max-height: 640px) { .run-buddy { display: none; } }
 @media (prefers-reduced-motion: reduce) { .done-buddy { animation: none; } .run-buddy { transition: none; } }
 

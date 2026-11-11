@@ -6,8 +6,8 @@
 /** slot → what it is. `signal` names the built-in signal an own sound replaces. */
 export const MEDIA_SLOTS = Object.freeze({
   background: { kind: 'image', label: 'Hintergrundbild' },
-  'sound-roundDone': { kind: 'sound', label: 'Ton „Runde geschafft"', signal: 'roundRestStart' },
-  'sound-end': { kind: 'sound', label: 'Ton „Ende"', signal: 'finished' },
+  'sound-roundDone': { kind: 'sound', label: 'Ton „Runde geschafft“', signal: 'roundRestStart', when: 'Spielt zu Beginn jeder Rundenpause, also nur bei mehr als einer Runde und Rundenpause über 0 s.' },
+  'sound-end': { kind: 'sound', label: 'Ton „Ende“', signal: 'finished', when: 'Spielt, wenn das Training geschafft ist.' },
 });
 export const MEDIA_KEYS = Object.freeze(Object.keys(MEDIA_SLOTS));
 

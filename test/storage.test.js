@@ -221,3 +221,17 @@ test('Design (look): Wahl bleibt nach Speichern und Laden, unbekannter Wert fäl
   assert.equal(migrateSettings({ settingsVersion: 2, look: 'ninja', animations: 'ja' }).animations, true);
   assert.equal(migrateSettings({ settingsVersion: 2, look: 'ninja' }).look, 'ninja');
 });
+
+test('Import: ungültige Werte aus einer Datei fallen auf den Standard, gültige bleiben', async () => {
+  const db = createDb(createMemoryStore());
+  await db.importData({ settings: { settingsVersion: 2, volume: 'laut', soundMode: 'rock', voice: 'ja', countdownBeeps: false, halfwayBeep: 1, theme: 'light' } });
+  const loaded = await db.loadSettings();
+  assert.equal(loaded.volume, DEFAULT_SETTINGS.volume);
+  assert.equal(loaded.soundMode, DEFAULT_SETTINGS.soundMode);
+  assert.equal(loaded.voice, DEFAULT_SETTINGS.voice);
+  assert.equal(loaded.halfwayBeep, DEFAULT_SETTINGS.halfwayBeep);
+  assert.equal(loaded.countdownBeeps, false); // valid choice is kept
+  assert.equal(loaded.theme, 'light');
+  assert.equal(migrateSettings({ settingsVersion: 2, volume: 0.05 }).volume, undefined); // below the slider's minimum
+  assert.equal(migrateSettings({ settingsVersion: 2, volume: 1 }).volume, 1);
+});
