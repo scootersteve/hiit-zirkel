@@ -86,5 +86,5 @@ Am schnellsten mit dem Zirkel **"Schnelltest (alle Signale)"** (2:33 min).
 | 11 | Ton länger als 8 s wählen | wird mit Begründung abgelehnt |
 | 11a | Langen eigenen Ton (5 bis 8 s) für "Runde geschafft" bei kurzer Rundenpause (z.B. 10 s) | Ton bricht beim ersten Countdown-Ton ab, Countdown bleibt hörbar |
 | 12 | Sicherung herunterladen, Datei ansehen | enthält weder Bild noch Ton |
-| 13 | App vom Home-Bildschirm löschen und neu hinzufügen | neues Symbol (grüner Ring mit Stern), Name "Circle Champ". Vorher Sicherung herunterladen, Bild und Töne müssen danach neu gewählt werden |
+| 13 | App vom Home-Bildschirm löschen und neu hinzufügen | neues Symbol (blaue wirbelnde Kugel mit offenem Ring), Name "Circle Champ". Vorher Sicherung herunterladen, Bild und Töne müssen danach neu gewählt werden |
 | 14 | Flugmodus, App neu öffnen, Design wechseln | Schrift und Figuren erscheinen auch offline |
