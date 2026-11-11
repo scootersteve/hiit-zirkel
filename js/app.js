@@ -24,7 +24,7 @@ import { showSettings } from './ui/settings.js';
 import { showRun } from './ui/run.js';
 import { showDone } from './ui/done.js';
 import { registerServiceWorker, applyUpdate } from './platform/update.js';
-import { applyTheme } from './platform/theme.js';
+import { applyTheme, applyLook } from './platform/theme.js';
 
 const db = await openDb(); // IndexedDB in the browser, in-memory fallback otherwise — never throws
 let settings;
@@ -35,6 +35,7 @@ try {
   settings = { ...DEFAULT_SETTINGS };
 }
 applyTheme(settings.theme);
+applyLook(settings.look, settings.animations);
 installTouchBehaviour();
 
 // Debounced so dragging the volume slider does not write on every pixel.

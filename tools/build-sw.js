@@ -3,7 +3,7 @@
 //   node tools/build-sw.js   (npm run build:sw)
 // No build step for the app itself — this is a one-off generator, like tools/make-sounds.js.
 
-import { readdirSync, statSync, writeFileSync, readFileSync } from 'node:fs';
+import { readdirSync, statSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
@@ -19,7 +19,9 @@ function walk(dir, acc = []) {
 }
 
 const rootFiles = ['index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
-const assets = ['./', ...rootFiles, ...walk('css'), ...walk('js')].map((p) => (p === './' ? p : `./${p}`));
+// fonts/ and img/ only with the files the app loads (no licence texts, no sources)
+const media = [...walk('fonts'), ...(existsSync(join(ROOT, 'img')) ? walk('img') : [])].filter((p) => /\.(ttf|woff2|svg|png|txt)$/.test(p));
+const assets = ['./', ...rootFiles, ...walk('css'), ...walk('js'), ...media].map((p) => (p === './' ? p : `./${p}`));
 
 const version = readFileSync(join(ROOT, 'js/version.js'), 'utf8').match(/VERSION\s*=\s*'([^']+)'/)[1];
 const CACHE = `circle-champ::${version}`;

@@ -180,13 +180,49 @@ try {
   await evaluate(`document.querySelector('[data-segmented="theme"] [data-value="auto"]').click(); true`);
   await sleep(500);
 
+  // Design (look): applies at once, survives a reload before the first paint, effects only in a look
+  await evaluate(`document.querySelector('[data-look="flammen"]').click(); true`);
+  await evaluate(`document.fonts.ready.then(() => true)`);
+  const lookNow = await evaluate(`({ attr: document.documentElement.dataset.look, pressed: document.querySelector('[data-look][aria-pressed="true"]').dataset.look,
+    font: getComputedStyle(document.querySelector('.large-title h1')).fontFamily, bg: getComputedStyle(document.body).backgroundColor })`);
+  check('Design: "Flammen" wirkt sofort (Farben, Titelschrift)',
+    lookNow.attr === 'flammen' && lookNow.pressed === 'flammen' && lookNow.font.includes('Bangers') && lookNow.bg !== 'rgb(242, 242, 247)', JSON.stringify(lookNow));
+  await evaluate(`(()=>{const t=document.querySelector('[data-toggle="animations"]'); t.checked=false; t.dispatchEvent(new Event('change',{bubbles:true})); return true;})()`);
+  await sleep(700);
+  await send('Page.reload');
+  await waitEval(`document.querySelector('#app main')`);
+  const lookAfter = await evaluate(`({ look: document.documentElement.dataset.look, anim: document.documentElement.dataset.anim, stored: localStorage.getItem('zd-look') })`);
+  check('Design: bleibt nach Reload, "Bewegte Effekte aus" ebenso', lookAfter.look === 'flammen' && lookAfter.anim === 'off' && lookAfter.stored === 'flammen', JSON.stringify(lookAfter));
+  await evaluate(`document.querySelector('[data-card="start"][data-id="sample-quick"]').click(); true`);
+  await waitEval(`document.querySelector('.run')`);
+  await evaluate(`document.querySelector('[data-action="skip"]').click(); true`); // prep → work
+  await sleep(500);
+  const fx = await evaluate(`({ phase: document.querySelector('.run').dataset.phase, aura: getComputedStyle(document.querySelector('.ring-aura')).display,
+    lines: getComputedStyle(document.querySelector('.run-fx')).display, linesOpacity: getComputedStyle(document.querySelector('.run-fx')).opacity,
+    moving: getComputedStyle(document.querySelector('.aura-move')).animationName, cells: document.querySelectorAll('.run-time span').length,
+    time: document.querySelector('.run-time').textContent })`);
+  check('Training im Design: Aura und Linien sichtbar, stehen bei "Effekte aus" still, Restzeit lesbar',
+    fx.phase === 'work' && fx.aura === 'block' && fx.lines === 'block' && Number(fx.linesOpacity) > 0.5 && fx.moving === 'none' && fx.cells >= 4 && /^\d+:\d\d$/.test(fx.time), JSON.stringify(fx));
+  await evaluate(`document.querySelector('[data-action="abort"]').click(); true`);
+  await waitEval(`document.querySelector('dialog.sheet[open]')`);
+  await evaluate(`document.querySelector('dialog.sheet [data-sheet="ok"]').click(); true`);
+  await waitEval(`document.querySelector('[data-action="home"]')`);
+  await evaluate(`document.querySelector('[data-action="home"]').click(); true`);
+  await waitEval(`document.querySelector('[data-nav="new"]')`);
+  await goTab('settings', `document.querySelector('[data-look="standard"]')`);
+  await evaluate(`document.querySelector('[data-look="standard"]').click(); true`);
+  await evaluate(`(()=>{const t=document.querySelector('[data-toggle="animations"]'); t.checked=true; t.dispatchEvent(new Event('change',{bubbles:true})); return true;})()`);
+  const lookOff = await evaluate(`({ look: document.documentElement.dataset.look ?? null, anim: document.documentElement.dataset.anim ?? null, stored: localStorage.getItem('zd-look'), bg: getComputedStyle(document.body).backgroundColor })`);
+  check('Design: zurück auf Standard entfernt das Design vollständig', lookOff.look === null && lookOff.anim === null && lookOff.stored === null, JSON.stringify(lookOff));
+  await sleep(700);
+
   // Licences and sources: the notice for the body graphic is in the app, with the full text
   const lic = await evaluate(`document.querySelector('[data-el="licenses"]')?.textContent || ''`);
   await evaluate(`document.querySelector('[data-action="body-license"]').click(); true`);
   await waitEval(`document.querySelector('dialog.form-sheet[open] .license-text')`);
   const licText = await evaluate(`document.querySelector('dialog.form-sheet[open] .license-text').textContent`);
   check('Einstellungen: Lizenzen und Quellen mit MIT-Text der Körpergrafik',
-    lic.includes('react-native-body-highlighter') && lic.includes('free-exercise-db') && licText.includes('MIT License') && licText.includes('ELABBASSI Hicham'));
+    lic.includes('react-native-body-highlighter') && lic.includes('free-exercise-db') && lic.includes('Bangers') && licText.includes('MIT License') && licText.includes('ELABBASSI Hicham'));
   await evaluate(`document.querySelector('dialog.form-sheet[open] [data-action="close"]').click(); true`);
   await waitEval(`!document.querySelector('dialog.form-sheet')`);
 

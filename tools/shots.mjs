@@ -2,7 +2,8 @@
 // For reviewing the design without a phone. The font is whatever this machine has (Segoe UI on
 // Windows); on the iPhone the same CSS renders in San Francisco.
 //
-// Usage:  node tools/shots.mjs [width] [height]      (default 390 844)
+// Usage:  node tools/shots.mjs [width] [height] [look]      (default 390 844, standard design;
+//         look = a name from js/data/looks.js, the files then carry it in their name)
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -11,6 +12,7 @@ import { launch, sleep } from './cdp.mjs';
 
 const WIDTH = Number(process.argv[2]) || 390;
 const HEIGHT = Number(process.argv[3]) || 844;
+const LOOK = process.argv[4] || '';
 const OUT = join(fileURLToPath(new URL('..', import.meta.url)), 'shots');
 mkdirSync(OUT, { recursive: true });
 
@@ -26,7 +28,7 @@ async function shot(name, { full = false } = {}) {
   }
   const { data } = await b.send('Page.captureScreenshot', { format: 'png' });
   if (full) await b.setViewport(WIDTH, HEIGHT);
-  const file = join(OUT, `${name}-${WIDTH}.png`);
+  const file = join(OUT, `${name}${LOOK ? `-${LOOK}` : ''}-${WIDTH}.png`);
   writeFileSync(file, Buffer.from(data, 'base64'));
   console.log(file);
 }
@@ -45,6 +47,14 @@ try {
   for (const mode of ['light', 'dark']) {
     await scheme(mode);
     await b.goto();
+    // choose the look the way a user does, so it is stored and survives the reloads below
+    if (LOOK) {
+      await tab('settings', `document.querySelector('[data-look]')`);
+      await tap(`[data-look="${LOOK}"]`);
+      await sleep(800);
+      await b.goto();
+      await b.evaluate(`document.fonts.ready.then(() => true)`);
+    }
     await shot(`home-leer-${mode}`);
 
     // one own circuit, so the screen shows both states

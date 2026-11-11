@@ -232,6 +232,15 @@ dialog.form-sheet::backdrop { background: var(--scrim); }
 .form-body .group-title, .form-body .group-foot { margin-left: 0; margin-right: 0; }
 .form-delete { margin-top: 26px; }
 
+/* design choice in the settings */
+.look-dots { flex: none; display: flex; }
+.look-dots i { width: 22px; height: 22px; margin-left: -7px; border-radius: 50%; border: 2px solid var(--surface); }
+.look-dots i:first-child { margin-left: 0; }
+.look-check { flex: none; display: grid; color: var(--accent); visibility: hidden; }
+.look-cell[aria-pressed="true"] .look-check { visibility: visible; }
+.look-cell[aria-pressed="true"] .cell-label { font-weight: 600; }
+.look-cell[aria-pressed="true"] .cell-hint { font-weight: 400; }
+
 .license-source { font-weight: 600; overflow-wrap: anywhere; }
 .license-text { margin-top: 12px; font-size: var(--t-footnote); color: var(--text-2); white-space: pre-line; overflow-wrap: anywhere; }
 

@@ -26,3 +26,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.`,
 });
+
+// Display font of the looks. The licence text is the file that ships next to the font.
+export const DISPLAY_FONT = Object.freeze({
+  name: 'Bangers',
+  url: 'https://github.com/googlefonts/bangers',
+  copyright: 'Copyright 2010 The Bangers Project Authors',
+  licenseFile: 'fonts/OFL-Bangers.txt',
+});

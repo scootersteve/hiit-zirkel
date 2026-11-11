@@ -36,3 +36,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Titelschrift der Designs: Bangers
+
+- Quelle: https://github.com/googlefonts/bangers, Datei aus https://github.com/google/fonts (Ordner `ofl/bangers`)
+- Übernommen: `fonts/Bangers-Regular.ttf`, unverändert. Wird nur geladen, wenn ein Design außer "Standard" gewählt ist.
+- Lizenz: SIL Open Font License 1.1, Copyright 2010 The Bangers Project Authors. Voller Text: `fonts/OFL-Bangers.txt`.

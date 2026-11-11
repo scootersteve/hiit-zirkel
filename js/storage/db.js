@@ -4,6 +4,7 @@
 
 import { openStore } from './store.js';
 import { makeId } from '../core/id.js';
+import { LOOK_IDS } from '../data/looks.js';
 
 // The app/sound/theme settings (kv: "settings"). Separate from the per-circuit timer settings
 // in js/core/plan.js. Loading always merges onto these, so a new field gets its default.
@@ -17,7 +18,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   countdownBeeps: true,
   halfwayBeep: false,
   theme: 'auto', // "auto" follows the device, "light" / "dark" force a scheme
-  animations: true,
+  look: 'standard', // design: "standard" or one of the anime-inspired looks (js/data/looks.js)
+  animations: true, // moving effects of the looks (aura, speed lines); off = they stand still
 });
 
 const THEMES = ['auto', 'light', 'dark'];
@@ -34,6 +36,10 @@ export function migrateSettings(saved) {
   const version = Number(out.settingsVersion) || 1;
   if (version < 2) out.theme = 'auto';
   if (!THEMES.includes(out.theme)) out.theme = 'auto';
+  // "look" came with 0.8.0: older settings have none and get the standard design. A look this
+  // version does not know (backup from a newer one) falls back to it as well.
+  if (!LOOK_IDS.includes(out.look)) out.look = 'standard';
+  if (typeof out.animations !== 'boolean') out.animations = true;
   out.settingsVersion = SETTINGS_VERSION;
   return out;
 }

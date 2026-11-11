@@ -161,3 +161,14 @@ test('Looks: es gibt mindestens einen, und jeder setzt Flächen, Text, Akzent un
     }
   }
 });
+
+test('Liste der Designs (js/data/looks.js) passt zu css/looks.css, Leistenfarbe = Seitenhintergrund', async () => {
+  const { LOOKS: list } = await import('../js/data/looks.js');
+  assert.deepEqual(list.map((l) => l.id).sort(), Object.keys(LOOKS).map((n) => (n === 'Standard' ? 'standard' : n)).sort());
+  for (const look of list) {
+    const tokens = LOOKS[look.id === 'standard' ? 'Standard' : look.id];
+    assert.equal(look.bar.light, tokens['--bg'].light, `${look.id}: bar.light`);
+    assert.equal(look.bar.dark, tokens['--bg'].dark, `${look.id}: bar.dark`);
+    assert.ok(look.name && look.hint && look.swatch.length === 3, look.id);
+  }
+});

@@ -6,9 +6,10 @@ import { buildBackup, parseBackup } from '../core/transfer.js';
 import { VERSION } from '../version.js';
 import * as audio from '../platform/audio.js';
 import * as speech from '../platform/speech.js';
-import { applyTheme } from '../platform/theme.js';
+import { applyTheme, applyLook } from '../platform/theme.js';
+import { LOOKS } from '../data/looks.js';
 import { EXERCISES } from '../data/exercises.js';
-import { BODY_GRAPHIC } from '../data/licenses.js';
+import { BODY_GRAPHIC, DISPLAY_FONT } from '../data/licenses.js';
 import { esc, icon, mount, once } from './dom.js';
 
 const THEME_OPTIONS = [['auto', 'Automatisch'], ['light', 'Hell'], ['dark', 'Dunkel']];
@@ -38,6 +39,14 @@ const segmented = (name, options, label) => `
   <div class="segmented" role="group" aria-label="${label}" data-segmented="${name}" style="--n:${options.length}">
     ${options.map(([value, text]) => `<button data-value="${value}">${text}</button>`).join('')}
   </div>`;
+
+// One row per look: three colour dots, name, a line of description, a check on the chosen one.
+const lookCell = (look) => `
+  <button class="cell look-cell" data-look="${look.id}" aria-pressed="false">
+    <span class="look-dots" aria-hidden="true">${look.swatch.map((c) => `<i style="background:${c}"></i>`).join('')}</span>
+    <span class="cell-label">${look.name}<span class="cell-hint">${look.hint}</span></span>
+    <span class="look-check" aria-hidden="true">${icon('check')}</span>
+  </button>`;
 
 const toggleCell = (key, label, hint, checked) => `
   <label class="cell">
@@ -109,6 +118,13 @@ export function showSettings(root, { db, settings, nav = 'none', onSettingsChang
       ${segmented('theme', THEME_OPTIONS, 'Darstellung')}
       <p class="group-foot" data-el="theme-hint"></p>
 
+      <h2 class="group-title">Design</h2>
+      <div class="group" data-el="looks" role="group" aria-label="Design">${LOOKS.map(lookCell).join('')}</div>
+      <div class="group group-gap">
+        ${toggleCell('animations', 'Bewegte Effekte', 'Aura und Linien im Training bewegen sich. Aus: Sie stehen still.', settings.animations)}
+      </div>
+      <p class="group-foot">Die Designs ändern Farben, Titelschrift und den Trainingsbildschirm. Hell und Dunkel gilt für jedes Design.</p>
+
       <h2 class="group-title">Ton</h2>
       ${segmented('soundMode', SOUND_OPTIONS, 'Ton-Modus')}
       <p class="group-foot" data-el="sound-hint"></p>
@@ -146,6 +162,10 @@ export function showSettings(root, { db, settings, nav = 'none', onSettingsChang
           <span class="cell-label">Körpergrafik<span class="cell-hint">Zeichnung der Figur aus react-native-body-highlighter, © 2022 ELABBASSI Hicham, MIT-Lizenz. Lizenztext ansehen.</span></span>
           <span class="ex-chevron">${icon('chevronRight')}</span>
         </button>
+        <button class="cell" data-action="font-license">
+          <span class="cell-label">Titelschrift der Designs<span class="cell-hint">Bangers, © 2010 The Bangers Project Authors, SIL Open Font License 1.1. Lizenztext ansehen.</span></span>
+          <span class="ex-chevron">${icon('chevronRight')}</span>
+        </button>
         <div class="cell">
           <span class="cell-label">Muskelzuordnung der Übungen<span class="cell-hint">Bei ${fromDb} von ${EXERCISES.length} Übungen aus free-exercise-db (gemeinfrei), ${adjusted} davon angepasst. Die übrigen sind eigene Angaben.</span></span>
         </div>
@@ -170,8 +190,11 @@ export function showSettings(root, { db, settings, nav = 'none', onSettingsChang
   }
   const renderTheme = () => renderSegmented('theme', THEME_HINT, $('[data-el="theme-hint"]'));
   const renderSound = () => renderSegmented('soundMode', SOUND_HINT, $('[data-el="sound-hint"]'));
+  const renderLooks = () =>
+    screen.querySelectorAll('[data-look]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.look === settings.look)));
   renderTheme();
   renderSound();
+  renderLooks();
 
   // ----- volume slider: the filled part of the track follows the thumb -----
   const volume = $('[data-volume]');
@@ -190,9 +213,23 @@ export function showSettings(root, { db, settings, nav = 'none', onSettingsChang
   screen.querySelectorAll('[data-toggle]').forEach((input) =>
     input.addEventListener('change', () => {
       settings[input.dataset.toggle] = input.checked;
+      if (input.dataset.toggle === 'animations') applyLook(settings.look, settings.animations);
       onSettingsChange();
     }),
   );
+
+  // The font's licence is the text file next to the font (in the offline cache as well).
+  const showFontLicense = once(async () => {
+    if (document.querySelector('dialog.form-sheet[open]')) return;
+    let license = `${DISPLAY_FONT.copyright}\n\nSIL Open Font License, Version 1.1`;
+    try {
+      const res = await fetch(DISPLAY_FONT.licenseFile);
+      if (res.ok) license = await res.text();
+    } catch {
+      /* offline without cache: the short form above still names licence and holder */
+    }
+    licenseSheet({ name: DISPLAY_FONT.name, url: DISPLAY_FONT.url, license });
+  });
 
   // ----- backup -----
   const status = $('[data-el="status"]');
@@ -220,6 +257,9 @@ export function showSettings(root, { db, settings, nav = 'none', onSettingsChang
       // imported settings apply at once, not only after the next start
       Object.assign(settings, await db.loadSettings());
       applyTheme(settings.theme);
+      applyLook(settings.look, settings.animations);
+      renderTheme();
+      renderLooks();
       audio.setMode(settings.soundMode);
       audio.setVolume(settings.volume);
       setStatus(`Importiert: ${counts.customExercises} Übungen, ${counts.templates} Zirkel, ${counts.history} Verlaufseinträge.`);
@@ -234,7 +274,11 @@ export function showSettings(root, { db, settings, nav = 'none', onSettingsChang
     const target = event.target.closest('button');
     if (!target) return;
     const group = target.closest('[data-segmented]')?.dataset.segmented;
-    if (group === 'theme') {
+    if (target.dataset.look) {
+      settings.look = applyLook(target.dataset.look, settings.animations);
+      renderLooks();
+      onSettingsChange();
+    } else if (group === 'theme') {
       settings.theme = applyTheme(target.dataset.value);
       renderTheme();
       onSettingsChange();
@@ -252,6 +296,8 @@ export function showSettings(root, { db, settings, nav = 'none', onSettingsChang
       exportBackup();
     } else if (target.dataset.action === 'body-license') {
       if (!document.querySelector('dialog.form-sheet[open]')) licenseSheet(BODY_GRAPHIC); // double tap opens one
+    } else if (target.dataset.action === 'font-license') {
+      showFontLicense();
     }
   });
 

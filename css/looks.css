@@ -10,15 +10,11 @@
    - Moving parts animate transform and opacity only (compositor), are small, and stop with
      the "animations" setting (data-anim="off") and with prefers-reduced-motion. */
 
-/* Display fonts, self-hosted so they work offline. SIL Open Font License 1.1, see fonts/. */
+/* Display font, self-hosted so it works offline: Bangers, SIL Open Font License 1.1, see
+   fonts/OFL-Bangers.txt. The browser fetches the file only when a look uses it. */
 @font-face {
   font-family: "CC Bangers";
   src: url("../fonts/Bangers-Regular.ttf") format("truetype");
-  font-display: swap;
-}
-@font-face {
-  font-family: "CC Russo";
-  src: url("../fonts/RussoOne-Regular.ttf") format("truetype");
   font-display: swap;
 }
 
@@ -82,25 +78,82 @@
   --fx-dot: rgb(10 0 20 / 0.3);
 }
 
+:root[data-look="wildnis"] {
+  --bg: light-dark(#eff5ec, #060d08);
+  --surface: light-dark(#ffffff, #111d14);
+  --surface-2: light-dark(#eff5ec, #1a2b1e);
+  --bar: light-dark(rgb(239 245 236 / 0.84), rgb(10 18 12 / 0.8));
+  --thumb: light-dark(#ffffff, #3b5241);
+  --text: light-dark(#0e1a10, #ffffff);
+  --text-2: light-dark(#4a5d4d, #a9bfae);
+  --text-3: light-dark(#7d8f80, #71877a);
+  --accent: light-dark(#1c6b3f, #5fdc9a);
+  --accent-tint: light-dark(rgb(28 107 63 / 0.12), rgb(95 220 154 / 0.16));
+  --accent-fill: #f2c94c;
+  --accent-fill-top: #f7d568;
+  --accent-fill-bottom: #e6b422;
+  --on-accent: #2a1d00;
+
+  --phase-prep-top: #56771f;      --phase-prep: #4d6b1f;      --phase-prep-bottom: #3c5416;
+  --phase-warmup-top: #96620c;    --phase-warmup: #8a5a0a;    --phase-warmup-bottom: #6e4705;
+  --phase-work-top: #cf4a12;      --phase-work: #bd3d0c;      --phase-work-bottom: #942c06;
+  --phase-rest-top: #11827a;      --phase-rest: #0f766e;      --phase-rest-bottom: #0a5c56;
+  --phase-roundRest-top: #7a4bcc; --phase-roundRest: #6d3fbf; --phase-roundRest-bottom: #55309a;
+  --phase-cooldown-top: #24758f;  --phase-cooldown: #1f6a86;  --phase-cooldown-bottom: #175369;
+
+  --aura: #c9f29c;
+  --aura-rest: #e2f5d3;
+  --fx-line: rgb(240 255 200 / 0.18);
+  --fx-dot: rgb(20 30 0 / 0.28);
+}
+
+:root[data-look="donner"] {
+  --bg: light-dark(#f1f0f8, #08061a);
+  --surface: light-dark(#ffffff, #15122e);
+  --surface-2: light-dark(#f1f0f8, #211d42);
+  --bar: light-dark(rgb(241 240 248 / 0.84), rgb(13 10 32 / 0.8));
+  --thumb: light-dark(#ffffff, #47417a);
+  --text: light-dark(#0d0b1f, #ffffff);
+  --text-2: light-dark(#524f6e, #b0acd0);
+  --text-3: light-dark(#8683a3, #7b77a3);
+  --accent: light-dark(#5a2fc9, #b79cff);
+  --accent-tint: light-dark(rgb(90 47 201 / 0.1), rgb(183 156 255 / 0.18));
+  --accent-fill: #ffd60a;
+  --accent-fill-top: #ffe04d;
+  --accent-fill-bottom: #f5c400;
+  --on-accent: #1c1500;
+
+  --phase-prep-top: #33589c;      --phase-prep: #2c4f8f;      --phase-prep-bottom: #213d72;
+  --phase-warmup-top: #96620c;    --phase-warmup: #8a5a0a;    --phase-warmup-bottom: #6e4705;
+  --phase-work-top: #cc1f63;      --phase-work: #b81656;      --phase-work-bottom: #8c0d40;
+  --phase-rest-top: #0f8072;      --phase-rest: #0f7a6a;      --phase-rest-bottom: #0a5f52;
+  --phase-roundRest-top: #4d42d6; --phase-roundRest: #4338ca; --phase-roundRest-bottom: #3229a3;
+  --phase-cooldown-top: #24758f;  --phase-cooldown: #1f6a86;  --phase-cooldown-bottom: #175369;
+
+  --aura: #ffe14d;
+  --aura-rest: #e9e2ff;
+  --fx-line: rgb(255 240 150 / 0.2);
+  --fx-dot: rgb(20 0 40 / 0.3);
+}
+
 /* ---------- display font: headings and the training screen, never running text ---------- */
 
 :root[data-look] { --font-display: "CC Bangers", var(--font); --display-tracking: 0.03em; --time-cell: 0.56em; }
-:root[data-look][data-font="russo"] { --font-display: "CC Russo", var(--font); --display-tracking: 0; --time-cell: 0.74em; }
 
 :root[data-look] :is(.large-title h1, .section-title, .circuit-head h3, .done h1, .run-phase > span:first-child, .run-exercise, .run-time, .circuit-duration) {
   font-family: var(--font-display);
-  font-weight: 400;            /* both fonts have one weight; a faked bold would smear them */
+  font-weight: 400;            /* the font has one weight; a faked bold would smear it */
   font-synthesis: none;
   letter-spacing: var(--display-tracking);
 }
 :root[data-look] .large-title h1 { font-size: calc(var(--t-large) * 1.2); line-height: 1.05; }
 :root[data-look] .section-title { font-size: calc(var(--t-title3) * 1.2); }
 :root[data-look] .circuit-head h3 { font-size: calc(var(--t-title3) * 1.15); line-height: 1.15; }
-/* the display fonts run narrower than the system font: larger, so they read as far */
+/* the display font runs narrower than the system font: larger, so it reads as far */
 :root[data-look] .run-phase > span:first-child { font-size: 1.45em; letter-spacing: 0.08em; }
-:root[data-look]:not([data-font="russo"]) .run-time { font-size: min(27vw, 15dvh, 122px); }
-:root[data-look]:not([data-font="russo"]) .run-time[data-long] { font-size: min(20vw, 11.5dvh, 94px); }
-/* the display fonts have no tabular figures: every character of the time gets the same cell,
+:root[data-look] .run-time { font-size: min(27vw, 15dvh, 122px); }
+:root[data-look] .run-time[data-long] { font-size: min(20vw, 11.5dvh, 94px); }
+/* the display font has no tabular figures: every character of the time gets the same cell,
    so the number does not wobble from second to second (run.js wraps the characters) */
 :root[data-look] .run-time { letter-spacing: 0; }
 :root[data-look] .run-time span { display: inline-block; width: var(--time-cell); text-align: center; }
