@@ -199,6 +199,22 @@
 @media (max-height: 640px) { .run-buddy { display: none; } }
 @media (prefers-reduced-motion: reduce) { .done-buddy { animation: none; } .run-buddy { transition: none; } }
 
+/* painted portraits: square pictures with their own background (moon, fire), so they appear as
+   a rounded tile or a round picture instead of standing free like the drawn figures */
+.home-buddy.portrait { width: 6.75rem; height: auto; aspect-ratio: 1; margin: 0; border-radius: var(--r-l); object-fit: cover; box-shadow: 0 0 0 1px var(--separator); }
+.done-buddy.portrait { width: min(72vw, 34dvh, 17rem); height: auto; aspect-ratio: 1; margin: 0 0 4px; border-radius: var(--r-l); object-fit: cover; }
+.look-face.portrait { background-size: cover; background-position: 50% 30%; }
+.run-buddy.portrait {
+  right: var(--gutter);
+  width: min(14dvh, 104px);
+  height: auto;
+  aspect-ratio: 1;
+  border: 3px solid var(--on-phase);
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 28%;
+}
+
 /* ---------- training screen effects ---------- */
 
 .run-fx, .ring-aura { display: none; }

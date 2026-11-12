@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
-import { LOOKS, LOOK_IDS, lookById, characterSrc, CHARACTER_POSES } from '../js/data/looks.js';
+import { LOOKS, LOOK_IDS, lookById, characterSrc, CHARACTER_POSES, PORTRAIT_LOOKS, PORTRAIT_SIZES, hasPortrait } from '../js/data/looks.js';
 
 const file = (path) => new URL(`../${path}`, import.meta.url);
 
@@ -23,15 +23,36 @@ test('Figuren: Standard hat keine, jedes andere Design beide Posen', () => {
   assert.equal(characterSrc('flammen', 'tanzt'), null);
   for (const look of LOOKS.filter((l) => l.id !== 'standard')) {
     for (const pose of CHARACTER_POSES) {
-      const src = characterSrc(look.id, pose);
-      assert.equal(src, `img/characters/${look.id}-${pose}.svg`);
-      assert.ok(existsSync(file(src)), `Datei fehlt: ${src}`);
+      for (const size of ['large', 'small']) {
+        const src = characterSrc(look.id, pose, size);
+        assert.match(src, hasPortrait(look.id) ? /^img\/portraits\/[a-z]+-(ready|cheer)-(640|216)\.webp$/ : /^img\/characters\/[a-z]+-(ready|cheer)\.svg$/, src);
+        assert.ok(existsSync(file(src)), `Datei fehlt: ${src}`);
+      }
+    }
+  }
+});
+
+test('Porträts: WebP, quadratisch in der angegebenen Größe, im Größenrahmen', () => {
+  assert.ok(PORTRAIT_LOOKS.length >= 1);
+  for (const look of PORTRAIT_LOOKS) {
+    assert.ok(LOOK_IDS.includes(look) && look !== 'standard', look);
+    for (const [pose, sizes] of Object.entries(PORTRAIT_SIZES)) {
+      for (const px of sizes) {
+        const path = `img/portraits/${look}-${pose}-${px}.webp`;
+        const b = readFileSync(file(path));
+        assert.equal(b.toString('ascii', 0, 4) + b.toString('ascii', 8, 12), 'RIFFWEBP', `${path}: kein WebP`);
+        assert.equal(b.toString('ascii', 12, 16), 'VP8X', `${path}: unerwartete WebP-Art`);
+        const w = 1 + b.readUIntLE(24, 3);
+        const h = 1 + b.readUIntLE(27, 3);
+        assert.deepEqual([w, h], [px, px], `${path}: ${w}x${h}`);
+        assert.ok(b.length <= (px === 640 ? 110 : 24) * 1024, `${path}: ${(b.length / 1024).toFixed(0)} kB`);
+      }
     }
   }
 });
 
 test('Figuren-Dateien: reines, eigenständiges SVG, klein, mit Titel', () => {
-  for (const look of LOOKS.filter((l) => l.id !== 'standard')) {
+  for (const look of LOOKS.filter((l) => l.id !== 'standard' && !hasPortrait(l.id))) {
     for (const pose of CHARACTER_POSES) {
       const src = characterSrc(look.id, pose);
       const svg = readFileSync(file(src), 'utf8');

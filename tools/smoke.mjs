@@ -205,11 +205,11 @@ try {
   check('Design: bleibt nach Reload, "Bewegte Effekte aus" ebenso', lookAfter.look === 'flammen' && lookAfter.anim === 'off' && lookAfter.stored === 'flammen', JSON.stringify(lookAfter));
   await waitEval(`document.querySelector('.home-buddy')?.complete`);
   const buddy = await evaluate(`(() => { const b = document.querySelector('.home-buddy'); return { src: b.getAttribute('src'), w: b.naturalWidth, alt: b.alt }; })()`);
-  check('Design: Figur auf der Startseite geladen (rein dekorativ, ohne Alt-Text)', buddy.src === 'img/characters/flammen-ready.svg' && buddy.w > 0 && buddy.alt === '', JSON.stringify(buddy));
+  check('Design: Porträt auf der Startseite geladen (rein dekorativ, ohne Alt-Text)', buddy.src === 'img/portraits/flammen-ready-640.webp' && buddy.w > 0 && buddy.alt === '', JSON.stringify(buddy));
   await evaluate(`document.querySelector('[data-card="start"][data-id="sample-quick"]').click(); true`);
   await waitEval(`document.querySelector('.run')`);
   const runBuddy = await evaluate(`(() => { const b = document.querySelector('.run-buddy'); return { hidden: b.hidden, src: b.getAttribute('src'), opacity: getComputedStyle(b).opacity }; })()`);
-  check('Training im Design: Figur steht im Vorlauf dabei', !runBuddy.hidden && runBuddy.src === 'img/characters/flammen-ready.svg' && Number(runBuddy.opacity) > 0.9, JSON.stringify(runBuddy));
+  check('Training im Design: Figur steht im Vorlauf dabei', !runBuddy.hidden && runBuddy.src === 'img/portraits/flammen-ready-216.webp' && Number(runBuddy.opacity) > 0.9, JSON.stringify(runBuddy));
   await evaluate(`document.querySelector('[data-action="skip"]').click(); true`); // prep → work
   await sleep(500);
   const fx = await evaluate(`({ phase: document.querySelector('.run').dataset.phase, aura: getComputedStyle(document.querySelector('.ring-aura')).display,

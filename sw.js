@@ -64,7 +64,13 @@ const ASSETS = [
   "./img/characters/ninja-cheer.svg",
   "./img/characters/ninja-ready.svg",
   "./img/characters/wildnis-cheer.svg",
-  "./img/characters/wildnis-ready.svg"
+  "./img/characters/wildnis-ready.svg",
+  "./img/portraits/flammen-cheer-640.webp",
+  "./img/portraits/flammen-ready-216.webp",
+  "./img/portraits/flammen-ready-640.webp",
+  "./img/portraits/ninja-cheer-640.webp",
+  "./img/portraits/ninja-ready-216.webp",
+  "./img/portraits/ninja-ready-640.webp"
 ];
 
 self.addEventListener('install', (event) => {

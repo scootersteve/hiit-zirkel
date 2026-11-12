@@ -2,7 +2,7 @@
 
 import { STATUS } from '../core/timer.js';
 import { formatElapsed } from '../core/format.js';
-import { characterSrc, currentLook } from '../data/looks.js';
+import { characterSrc, currentLook, hasPortrait } from '../data/looks.js';
 import { esc, icon, mount } from './dom.js';
 
 export function showDone(root, { result, onRepeat, onHome }) {
@@ -16,7 +16,9 @@ export function showDone(root, { result, onRepeat, onHome }) {
   const screen = mount(root, `
     <main class="page done" data-screen="done">
       ${cheer
-        ? `<img class="done-buddy" src="${cheer}" alt="" width="240" height="320" decoding="async">`
+        ? (hasPortrait(currentLook())
+          ? `<img class="done-buddy portrait" src="${cheer}" alt="" width="640" height="640" decoding="async">`
+          : `<img class="done-buddy" src="${cheer}" alt="" width="240" height="320" decoding="async">`)
         : `<div class="done-badge ${aborted ? 'aborted' : ''}" aria-hidden="true">${icon(aborted ? 'close' : 'check')}</div>`}
       <p class="done-kicker">${aborted ? 'Abgebrochen' : 'Geschafft'}</p>
       <h1>${esc(result.circuit.name || 'Zirkel')}</h1>

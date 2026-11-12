@@ -10,7 +10,7 @@ import { formatElapsed, formatRemaining } from '../core/format.js';
 import * as audio from '../platform/audio.js';
 import * as speech from '../platform/speech.js';
 import * as wake from '../platform/wakelock.js';
-import { characterSrc, currentLook } from '../data/looks.js';
+import { characterSrc, currentLook, hasPortrait } from '../data/looks.js';
 import { setText, icon, mount, confirmSheet } from './dom.js';
 
 // In a look, every character of the remaining time sits in its own cell: the display fonts have
@@ -97,10 +97,12 @@ export function showRun(root, { circuit, settings, photoUrl = null, onEnd }) {
     screen.querySelector('.run-photo').style.backgroundImage = `url("${photoUrl}")`;
   }
   // the look's figure: stands in a corner during the breaks, steps aside while you work
-  const buddySrc = characterSrc(currentLook(), 'ready');
+  // (a painted portrait appears as a round picture, a drawn figure stands free)
+  const buddySrc = characterSrc(currentLook(), 'ready', 'small');
   const buddy = buddySrc ? screen.querySelector('.run-buddy') : null;
   if (buddy) {
     buddy.src = buddySrc;
+    buddy.classList.toggle('portrait', hasPortrait(currentLook()));
     buddy.hidden = false;
   }
   // Long exercise names on small phones can reach down to the figure. Once per phase (one layout

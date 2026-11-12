@@ -88,3 +88,14 @@ Am schnellsten mit dem Zirkel **"Schnelltest (alle Signale)"** (2:33 min).
 | 12 | Sicherung herunterladen, Datei ansehen | enthält weder Bild noch Ton |
 | 13 | App vom Home-Bildschirm löschen und neu hinzufügen | neues Symbol (blaue wirbelnde Kugel mit offenem Ring), Name "Circle Champ". Vorher Sicherung herunterladen, Bild und Töne müssen danach neu gewählt werden |
 | 14 | Flugmodus, App neu öffnen, Design wechseln | Schrift und Figuren erscheinen auch offline |
+
+## Porträts der Designs (Branch feature/teil-d, noch nicht veröffentlicht)
+
+| # | Prüfpunkt | Erwartung |
+|---|---|---|
+| 1 | Erster Start ohne gewähltes Design | Flammen ist aktiv, Porträt oben rechts neben dem Titel |
+| 2 | Einstellungen → Design | Flammen und Ninja zeigen das Gesicht ihres Porträts im runden Bild, klar erkennbar |
+| 3 | Training in Flammen oder Ninja, Pause | rundes Porträt mit weißem Rand unten rechts, verdeckt keinen Text |
+| 4 | Training bis zum Ende | großes Siegerbild auf dem Abschlussbildschirm, scharf, nicht verpixelt |
+| 5 | Flugmodus, App öffnen | Porträts erscheinen auch offline |
+| 6 | Übung hinzufügen, mehrere antippen, "Fertig", erneut "Übung hinzufügen" | gewählte Übungen tragen einen Haken, oben "… im Zirkel"; Tipp auf eine markierte nimmt sie heraus |

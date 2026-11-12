@@ -16,13 +16,29 @@ export const LOOK_IDS = Object.freeze(LOOKS.map((l) => l.id));
 // no look on <html> means the standard design, so an unknown id is read as "standard" here
 export const lookById = (id) => LOOKS.find((l) => l.id === id) || LOOKS.find((l) => l.id === 'standard');
 
-// Every look except "standard" has its own figure (original drawings, img/characters/), in two
-// poses: "ready" (start screen, breaks in the training) and "cheer" (end screen).
+// Every look except "standard" has its own character in two poses: "ready" (start screen, design
+// list, breaks in the training) and "cheer" (end screen). Looks listed in PORTRAIT_LOOKS have a
+// painted portrait: a square picture with its own background (img/portraits/<look>-<pose>-<size>.webp,
+// "ready" in 640 and 216 px, "cheer" in 640 px). The others still show the earlier drawn figure
+// (img/characters/<look>-<pose>.svg, transparent) until their portraits are added here.
 export const CHARACTER_POSES = Object.freeze(['ready', 'cheer']);
-/** Path of a look's figure, or null for the standard design and unknown looks. */
-export function characterSrc(look, pose = 'ready') {
+export const PORTRAIT_LOOKS = Object.freeze(['flammen', 'ninja']);
+export const PORTRAIT_SIZES = Object.freeze({ ready: [640, 216], cheer: [640] });
+
+/** True when the look's character is a painted portrait (square, with background). */
+export const hasPortrait = (look) => PORTRAIT_LOOKS.includes(lookById(look).id);
+
+/**
+ * Path of a look's character picture, or null for the standard design, unknown looks and poses.
+ * `size` picks the portrait size ("small" = 216 px for the design list and the training); drawn
+ * figures are vector graphics and have one file per pose.
+ */
+export function characterSrc(look, pose = 'ready', size = 'large') {
   const id = lookById(look).id;
-  return id === 'standard' || !CHARACTER_POSES.includes(pose) ? null : `img/characters/${id}-${pose}.svg`;
+  if (id === 'standard' || !CHARACTER_POSES.includes(pose)) return null;
+  if (!hasPortrait(id)) return `img/characters/${id}-${pose}.svg`;
+  const px = size === 'small' && PORTRAIT_SIZES[pose].includes(216) ? 216 : 640;
+  return `img/portraits/${id}-${pose}-${px}.webp`;
 }
 /** The look that is showing right now (set on <html> by platform/theme.js). */
 export const currentLook = () => (typeof document === 'undefined' ? 'standard' : document.documentElement.dataset.look || 'standard');

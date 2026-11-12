@@ -4,7 +4,7 @@
 import { plannedDurationS } from '../core/plan.js';
 import { formatDuration } from '../core/format.js';
 import { SAMPLE_CIRCUITS } from '../data/samples.js';
-import { characterSrc, currentLook } from '../data/looks.js';
+import { characterSrc, currentLook, hasPortrait } from '../data/looks.js';
 import { esc, icon, mount } from './dom.js';
 
 function circuitCard(c, kind) {
@@ -49,12 +49,13 @@ export function showHome(root, {
          <button class="btn primary" data-nav="new">${icon('plus')}Zirkel erstellen</button>
        </div>`;
 
-  const buddy = characterSrc(currentLook(), 'ready'); // decorative: the look's figure, none in the standard design
+  const buddy = characterSrc(currentLook(), 'ready'); // decorative: the look's character, none in the standard design
+  const portrait = hasPortrait(currentLook());
   const screen = mount(root, `
     <main class="page">
       <header class="large-title home-head">
         <h1>Circle Champ</h1>
-        ${buddy ? `<img class="home-buddy" src="${buddy}" alt="" width="240" height="320" decoding="async">` : ''}
+        ${buddy ? `<img class="home-buddy${portrait ? ' portrait' : ''}" src="${buddy}" alt="" width="${portrait ? 640 : 240}" height="${portrait ? 640 : 320}" decoding="async">` : ''}
       </header>
 
       <h2 class="section-title">Meine Zirkel</h2>

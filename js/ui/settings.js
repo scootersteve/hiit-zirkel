@@ -7,7 +7,7 @@ import { VERSION } from '../version.js';
 import * as audio from '../platform/audio.js';
 import * as speech from '../platform/speech.js';
 import { applyTheme, applyLook } from '../platform/theme.js';
-import { LOOKS, characterSrc } from '../data/looks.js';
+import { LOOKS, characterSrc, hasPortrait } from '../data/looks.js';
 import { MEDIA_SLOTS, MEDIA_KEYS, checkFile, checkSoundLength, makeMediaRecord, formatBytes } from '../core/media.js';
 import { photoToJpeg, recordUrl } from '../platform/media.js';
 import { EXERCISES } from '../data/exercises.js';
@@ -45,7 +45,7 @@ const segmented = (name, options, label) => `
 // One row per look: three colour dots, name, a line of description, a check on the chosen one.
 const lookCell = (look) => `
   <button class="cell look-cell" data-look="${look.id}" aria-pressed="false">
-    <span class="look-face${characterSrc(look.id) ? '' : ' plain'}" aria-hidden="true" style="background-image:url('${characterSrc(look.id) || 'favicon.svg'}')"></span>
+    <span class="look-face${characterSrc(look.id) ? (hasPortrait(look.id) ? ' portrait' : '') : ' plain'}" aria-hidden="true" style="background-image:url('${characterSrc(look.id, 'ready', 'small') || 'favicon.svg'}')"></span>
     <span class="look-dots" aria-hidden="true">${look.swatch.map((c) => `<i style="background:${c}"></i>`).join('')}</span>
     <span class="cell-label">${look.name}<span class="cell-hint">${look.hint}</span></span>
     <span class="look-check" aria-hidden="true">${icon('check')}</span>
@@ -207,7 +207,7 @@ export function showSettings(root, { db, settings, media = {}, nav = 'none', onS
           <span class="cell-label">Muskelzuordnung der Übungen<span class="cell-hint">Bei ${fromDb} von ${EXERCISES.length} Übungen aus free-exercise-db (gemeinfrei), ${adjusted} davon angepasst. Die übrigen sind eigene Angaben.</span></span>
         </div>
         <div class="cell">
-          <span class="cell-label">Diese App<span class="cell-hint">Eigener Code, eigene Figuren der Designs und eigenes App-Symbol unter MIT-Lizenz. Die Figuren sind für diese App gezeichnet und stellen keine Figur aus einer Serie oder einem Spiel dar. Quelltext auf GitHub: scootersteve/hiit-zirkel.</span></span>
+          <span class="cell-label">Diese App<span class="cell-hint">Eigener Code, eigene Figuren der Designs und eigenes App-Symbol unter MIT-Lizenz. Die Porträts der Designs Flammen und Ninja sind mit einem KI-Bildgenerator (ChatGPT) nach eigenen Beschreibungen entstanden. Alle Figuren sind für diese App erfunden und stellen keine Figur aus einer Serie oder einem Spiel dar. Quelltext auf GitHub: scootersteve/hiit-zirkel.</span></span>
         </div>
       </div>
 

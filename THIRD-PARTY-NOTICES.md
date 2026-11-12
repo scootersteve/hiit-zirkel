@@ -42,3 +42,11 @@ SOFTWARE.
 - Quelle: https://github.com/googlefonts/bangers, Datei aus https://github.com/google/fonts (Ordner `ofl/bangers`)
 - Übernommen: `fonts/Bangers-Regular.ttf`, unverändert. Wird nur geladen, wenn ein Design außer "Standard" gewählt ist.
 - Lizenz: SIL Open Font License 1.1, Copyright 2010 The Bangers Project Authors. Voller Text: `fonts/OFL-Bangers.txt`.
+
+## Porträts der Designs Flammen und Ninja
+
+- Dateien: `img/portraits/*.webp`
+- Entstanden mit einem KI-Bildgenerator (ChatGPT von OpenAI) nach eigenen Textbeschreibungen für diese
+  App, danach zugeschnitten und verkleinert. Die Figuren sind erfunden und stellen keine Figur aus einer
+  Serie oder einem Spiel dar. Die Nutzungsrechte richten sich nach den Bedingungen des verwendeten
+  Dienstes zum Zeitpunkt der Erzeugung (November 2026).
