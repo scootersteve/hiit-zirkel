@@ -302,3 +302,75 @@
 @media (prefers-reduced-motion: reduce) {
   .aura-move, :root[data-look] .run[data-phase="work"] .run-fx { animation: none; }
 }
+
+/* ---------- storm look ("ninja"): lightning instead of rays, bolts through every screen ----------
+   Graphics from tools/make-fx.mjs (img/fx/). Only opacity changes; the flashes are thin lines,
+   below three per second, and stand still with "Bewegte Effekte" off or reduced motion. */
+
+/* every page: faint bolts behind the content (part of the screen's own background) */
+:root[data-look="ninja"] .screen:not(:has(.run)) {
+  background: url("../img/fx/bolts-soft-1.svg") top center / 100% auto repeat-y, url("../img/fx/bolts-soft-3.svg") center 40vh / 100% auto repeat-y, var(--bg);
+}
+
+/* training: bolts from the edges instead of speed lines and raster, in every phase */
+:root[data-look="ninja"] .run .run-fx { opacity: 0.4; }
+:root[data-look="ninja"] .run[data-phase="work"] .run-fx { opacity: 1; }
+:root[data-look="ninja"] .fx-lines,
+:root[data-look="ninja"] .fx-dots { -webkit-mask-image: none; mask-image: none; background: center / cover no-repeat; will-change: opacity; }
+:root[data-look="ninja"] .fx-lines { background-image: url("../img/fx/bolts-ice-1.svg"); animation: flash-a 2.9s linear infinite; }
+:root[data-look="ninja"] .fx-dots { background-image: url("../img/fx/bolts-ice-2.svg"); animation: flash-b 4.3s linear infinite; }
+:root[data-look="ninja"] .run-fx::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("../img/fx/bolts-ice-3.svg") center / cover no-repeat;
+  opacity: 0.55;
+}
+
+/* ring: a crown of lightning. One set stays, two more strike at uneven moments. */
+:root[data-look="ninja"] .aura-move { animation: none; }
+:root[data-look="ninja"] .aura-art::after {
+  background: url("../img/fx/crown-1.svg") center / 100% 100% no-repeat;
+  -webkit-mask-image: none;
+  mask-image: none;
+  border-radius: 0;
+}
+:root[data-look="ninja"] .aura-move::before,
+:root[data-look="ninja"] .aura-move::after { content: ""; position: absolute; inset: 0; will-change: opacity; }
+:root[data-look="ninja"] .aura-move::before { background: url("../img/fx/crown-2.svg") center / 100% 100% no-repeat; animation: flash-a 2.3s linear infinite; }
+:root[data-look="ninja"] .aura-move::after { background: url("../img/fx/crown-3.svg") center / 100% 100% no-repeat; animation: flash-b 3.7s linear infinite; }
+
+@keyframes flash-a { 0%, 5% { opacity: 1; } 7% { opacity: 0.15; } 9%, 15% { opacity: 1; } 22%, 100% { opacity: 0; } }
+@keyframes flash-b { 0%, 48% { opacity: 0; } 50%, 56% { opacity: 1; } 58% { opacity: 0.2; } 61%, 66% { opacity: 0.9; } 74%, 100% { opacity: 0; } }
+
+:root[data-look="ninja"] .run[data-paused] :is(.fx-lines, .fx-dots, .aura-move::before, .aura-move::after) { animation-play-state: paused; }
+:root[data-look="ninja"][data-anim="off"] :is(.fx-lines, .fx-dots),
+:root[data-look="ninja"][data-anim="off"] .aura-move::before,
+:root[data-look="ninja"][data-anim="off"] .aura-move::after { animation: none; opacity: 0.7; }
+@media (prefers-reduced-motion: reduce) {
+  :root[data-look="ninja"] :is(.fx-lines, .fx-dots),
+  :root[data-look="ninja"] .aura-move::before,
+  :root[data-look="ninja"] .aura-move::after { animation: none; opacity: 0.7; }
+}
+
+/* The portrait is the stage of the training: it fills the screen behind everything, under the
+   same darkening as an own background picture (--photo-scrim, --photo-tint: tested to keep the
+   text readable even over the bright moon). An own picture of the user takes precedence. */
+:root[data-look="ninja"] .run:not(.has-photo) { background: var(--phase-bottom); }
+:root[data-look="ninja"] .run:not(.has-photo) .run-photo {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: url("../img/portraits/ninja-ready-640.webp") 50% 22% / cover no-repeat;
+  will-change: transform;
+}
+:root[data-look="ninja"] .run:not(.has-photo) .run-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--phase-top) var(--photo-tint), transparent), color-mix(in srgb, var(--phase-bottom) var(--photo-tint), transparent)),
+    linear-gradient(var(--photo-scrim), var(--photo-scrim));
+}
+:root[data-look="ninja"] .run:not(.has-photo) .run-buddy { display: none; }
