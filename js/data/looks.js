@@ -22,7 +22,7 @@ export const lookById = (id) => LOOKS.find((l) => l.id === id) || LOOKS.find((l)
 // "ready" in 640 and 216 px, "cheer" in 640 px). The others still show the earlier drawn figure
 // (img/characters/<look>-<pose>.svg, transparent) until their portraits are added here.
 export const CHARACTER_POSES = Object.freeze(['ready', 'cheer']);
-export const PORTRAIT_LOOKS = Object.freeze(['flammen', 'ninja']);
+export const PORTRAIT_LOOKS = Object.freeze(['flammen', 'ninja', 'donner']);
 export const PORTRAIT_SIZES = Object.freeze({ ready: [640, 216], cheer: [640] });
 
 /** True when the look's character is a painted portrait (square, with background). */
