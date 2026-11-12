@@ -64,6 +64,8 @@ const svg = (viewBox, body, extra = '') =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}"${extra} fill="none" stroke-linecap="round" stroke-linejoin="round">${body}</svg>\n`;
 
 // ---- crown around the ring: aura box is 130 × 130, centre 65, ring outer edge at r = 48.5 ----
+// ice = storm look ("ninja"), gold = thunder look ("donner")
+for (const [suffix, crownColors] of [['', ['#9fdcff', '#ffffff']], ['-gold', ['#ffd60a', '#fff7c2']]])
 for (let n = 1; n <= 3; n++) {
   const rand = rng(100 + n);
   let body = '';
@@ -74,9 +76,9 @@ for (let n = 1; n <= 3; n++) {
     const r2 = 57 + rand() * 7;
     const a = [65 + Math.cos(ang) * r0, 65 + Math.sin(ang) * r0];
     const b = [65 + Math.cos(ang + (rand() - 0.5) * 0.25) * r2, 65 + Math.sin(ang + (rand() - 0.5) * 0.25) * r2];
-    body += strike(rand, a, b, 0.22, 0.9, ['#9fdcff', '#ffffff']);
+    body += strike(rand, a, b, 0.22, 0.9, crownColors);
   }
-  writeFileSync(join(OUT, `crown-${n}.svg`), svg('0 0 130 130', body));
+  writeFileSync(join(OUT, `crown${suffix}-${n}.svg`), svg('0 0 130 130', body));
 }
 
 // ---- bolts from the screen edges, kept away from the middle (ring and texts) ----
@@ -86,7 +88,7 @@ const EDGE = [
   [[-10, 300], [70, 470]], [[400, 300], [320, 450]], [[250, -10], [330, 180]],
 ];
 // soft = faint, for page backgrounds behind texts in light and dark
-for (const [name, colors, opacity] of [['ice', ['#9fdcff', '#ffffff'], 1], ['soft', ['#8f8bff', '#6f7bff'], 0.22]]) {
+for (const [name, colors, opacity] of [['ice', ['#9fdcff', '#ffffff'], 1], ['gold', ['#ffd60a', '#fff7c2'], 1], ['soft', ['#8f8bff', '#6f7bff'], 0.22]]) {
   for (let n = 1; n <= 3; n++) {
     const rand = rng(200 + n);
     const body = EDGE.filter((_, i) => i % 3 === n - 1)
