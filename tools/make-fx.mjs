@@ -153,4 +153,52 @@ for (const [name, opacity] of [['hot', 1], ['soft', 0.2]]) {
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" preserveAspectRatio="xMidYMax slice"${opacity < 1 ? ` opacity="${opacity}"` : ''}>${body}</svg>\n`);
   }
 }
-console.log('img/fx: Blitze (Kränze, Ebenen) und Flammen (Kränze, Ebenen)');
+
+// ================= wild look ("wildnis") =================
+// leaves-crown-<n>.svg  a wreath of leaves around the ring
+// wild-<c>-<n>.svg      blades of grass from the bottom edge plus drifting leaves; c = hot or soft
+for (let n = 1; n <= 3; n++) {
+  const rand = rng(500 + n);
+  let dark = '';
+  let light = '';
+  let gold = '';
+  const count = 18;
+  for (let i = 0; i < count; i++) {
+    const ang = ((i + rand() * 0.6 + n * 0.29) / count) * Math.PI * 2;
+    const len = 8 + rand() * 7;
+    const w = 2.8 + rand() * 1.4;
+    const curl = (rand() - 0.5) * 2.4;
+    const bx = 65 + Math.cos(ang) * 48.4, by = 65 + Math.sin(ang) * 48.4;
+    const lean = ang + (rand() - 0.5) * 0.9;
+    const leaf = tongue(bx, by, lean, len, w, curl);
+    if (i % 5 === 0) gold += leaf;
+    else if (i % 2) light += leaf;
+    else dark += leaf;
+  }
+  writeFileSync(join(OUT, `leaves-crown-${n}.svg`),
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 130" stroke="#0e2a1a" stroke-width=".5" stroke-linejoin="round"><path d="${dark}" fill="#2f9e63"/><path d="${light}" fill="#3fd1b0"/><path d="${gold}" fill="#f2c94c"/></svg>\n`);
+}
+for (const [name, opacity] of [['hot', 1], ['soft', 0.2]]) {
+  for (let n = 1; n <= 3; n++) {
+    const rand = rng(600 + n);
+    let grass = '';
+    let leavesA = '';
+    let leavesB = '';
+    for (let x = -20 + n * 7; x < 410; x += 16 + rand() * 16) {
+      grass += tongue(x, 850, -Math.PI / 2 + (rand() - 0.5) * 0.5, 50 + rand() * 120, 7 + rand() * 6, (rand() - 0.5) * 22);
+    }
+    for (let i = 0; i < 20; i++) {
+      const x = rand() < 0.5 ? rand() * 95 : 295 + rand() * 95;
+      const y = 40 + rand() * 700;
+      const leaf = tongue(x, y, rand() * Math.PI * 2, 12 + rand() * 12, 3.5 + rand() * 2.5, (rand() - 0.5) * 4);
+      if (i % 3 === 0) leavesB += leaf;
+      else leavesA += leaf;
+    }
+    const body = name === 'hot'
+      ? `<defs><linearGradient id="g" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#3fd1b0"/><stop offset=".5" stop-color="#2f9e63" stop-opacity=".8"/><stop offset="1" stop-color="#1f7a4a" stop-opacity="0"/></linearGradient></defs><path d="${grass}" fill="url(#g)"/><path d="${leavesA}" fill="#8fe3b0"/><path d="${leavesB}" fill="#f2c94c"/>`
+      : `<path d="${leavesA}" fill="#2f9e63"/><path d="${leavesB}" fill="#c9a227"/>`;
+    writeFileSync(join(OUT, `wild-${name}-${n}.svg`),
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" preserveAspectRatio="xMidYMax slice"${opacity < 1 ? ` opacity="${opacity}"` : ''}>${body}</svg>\n`);
+  }
+}
+console.log('img/fx: Blitze, Flammen und Blätter (je Kränze und Ebenen)');

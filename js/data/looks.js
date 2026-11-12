@@ -19,10 +19,10 @@ export const lookById = (id) => LOOKS.find((l) => l.id === id) || LOOKS.find((l)
 // Every look except "standard" has its own character in two poses: "ready" (start screen, design
 // list, breaks in the training) and "cheer" (end screen). Looks listed in PORTRAIT_LOOKS have a
 // painted portrait: a square picture with its own background (img/portraits/<look>-<pose>-<size>.webp,
-// "ready" in 640 and 216 px, "cheer" in 640 px). The others still show the earlier drawn figure
-// (img/characters/<look>-<pose>.svg, transparent) until their portraits are added here.
+// "ready" in 640 and 216 px, "cheer" in 640 px). All four looks have one; a look added without a
+// portrait would fall back to a drawn figure (img/characters/<look>-<pose>.svg).
 export const CHARACTER_POSES = Object.freeze(['ready', 'cheer']);
-export const PORTRAIT_LOOKS = Object.freeze(['flammen', 'ninja', 'donner']);
+export const PORTRAIT_LOOKS = Object.freeze(['flammen', 'ninja', 'wildnis', 'donner']);
 export const PORTRAIT_SIZES = Object.freeze({ ready: [640, 216], cheer: [640] });
 
 /** True when the look's character is a painted portrait (square, with background). */

@@ -305,7 +305,7 @@
 
 /* ---------- scene looks: the whole design is built around the character ----------
    "ninja" = storm (ice-blue lightning), "donner" = thunder (yellow lightning), "flammen" = fire
-   (flames, embers). Each sets its pictures as
+   (flames, embers), "wildnis" = wild (grass, drifting leaves). Each sets its pictures as
    variables; the rules below are shared. Graphics from tools/make-fx.mjs (img/fx/).
    Only opacity changes (below three flashes per second); everything stands still with
    "Bewegte Effekte" off or reduced motion. */
@@ -321,6 +321,12 @@
   --page-1: url("../img/fx/bolts-soft-2.svg"); --page-2: url("../img/fx/bolts-soft-1.svg");
   --stage: url("../img/portraits/donner-ready-640.webp"); --scene-pos: center; --scene-rest: 0.4;
 }
+:root[data-look="wildnis"] {
+  --scene-1: url("../img/fx/wild-hot-1.svg"); --scene-2: url("../img/fx/wild-hot-2.svg"); --scene-3: url("../img/fx/wild-hot-3.svg");
+  --crown-1: url("../img/fx/leaves-crown-1.svg"); --crown-2: url("../img/fx/leaves-crown-2.svg"); --crown-3: url("../img/fx/leaves-crown-3.svg");
+  --page-1: url("../img/fx/wild-soft-1.svg"); --page-2: url("../img/fx/wild-soft-3.svg");
+  --stage: url("../img/portraits/wildnis-ready-640.webp"); --scene-pos: center bottom; --scene-rest: 0.45;
+}
 :root[data-look="flammen"] {
   --scene-1: url("../img/fx/fire-hot-1.svg"); --scene-2: url("../img/fx/fire-hot-2.svg"); --scene-3: url("../img/fx/fire-hot-3.svg");
   --crown-1: url("../img/fx/flames-crown-1.svg"); --crown-2: url("../img/fx/flames-crown-2.svg"); --crown-3: url("../img/fx/flames-crown-3.svg");
@@ -329,54 +335,59 @@
 }
 
 /* every page: faint bolts or embers behind the content (part of the screen's own background) */
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .screen:not(:has(.run)) {
+:root[data-look] .screen:not(:has(.run)) {
   background: var(--page-1) top center / 100% auto repeat-y, var(--page-2) center 40vh / 100% auto repeat-y, var(--bg);
 }
 
 /* training: the scene from the edges instead of speed lines and raster, in every phase */
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .run .run-fx { opacity: var(--scene-rest); }
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .run[data-phase="work"] .run-fx { opacity: 1; }
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) :is(.fx-lines, .fx-dots) { -webkit-mask-image: none; mask-image: none; background: var(--scene-pos) / cover no-repeat; will-change: opacity; }
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .fx-lines { background-image: var(--scene-1); animation: flash-a 2.9s linear infinite; }
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .fx-dots { background-image: var(--scene-2); animation: flash-b 4.3s linear infinite; }
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .run-fx::after { content: ""; position: absolute; inset: 0; background: var(--scene-3) var(--scene-pos) / cover no-repeat; opacity: 0.55; }
+:root[data-look] .run .run-fx { opacity: var(--scene-rest); }
+:root[data-look] .run[data-phase="work"] .run-fx { opacity: 1; }
+:root[data-look] :is(.fx-lines, .fx-dots) { -webkit-mask-image: none; mask-image: none; background: var(--scene-pos) / cover no-repeat; will-change: opacity; }
+:root[data-look] .fx-lines { background-image: var(--scene-1); animation: flash-a 2.9s linear infinite; }
+:root[data-look] .fx-dots { background-image: var(--scene-2); animation: flash-b 4.3s linear infinite; }
+:root[data-look] .run-fx::after { content: ""; position: absolute; inset: 0; background: var(--scene-3) var(--scene-pos) / cover no-repeat; opacity: 0.55; }
 /* fire does not strike, it flickers: softer rhythm, never fully gone */
-:root[data-look="flammen"] .fx-lines { animation: flicker-a 1.7s ease-in-out infinite alternate; }
-:root[data-look="flammen"] .fx-dots { animation: flicker-b 2.3s ease-in-out infinite alternate; }
-:root[data-look="flammen"] .run-fx::after { opacity: 0.8; }
+:root:is([data-look="flammen"], [data-look="wildnis"]) .fx-lines { animation: flicker-a 1.7s ease-in-out infinite alternate; }
+:root:is([data-look="flammen"], [data-look="wildnis"]) .fx-dots { animation: flicker-b 2.3s ease-in-out infinite alternate; }
+:root:is([data-look="flammen"], [data-look="wildnis"]) .run-fx::after { opacity: 0.8; }
+/* leaves sway slowly */
+:root[data-look="wildnis"] .fx-lines { animation-duration: 3.1s; }
+:root[data-look="wildnis"] .fx-dots { animation-duration: 4.3s; }
 
 /* ring: a crown of lightning or flames. One set stays, two more come and go. */
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .aura-move { animation: none; }
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .aura-art::after { background: var(--crown-1) center / 100% 100% no-repeat; -webkit-mask-image: none; mask-image: none; border-radius: 0; }
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .aura-move::before,
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .aura-move::after { content: ""; position: absolute; inset: 0; will-change: opacity; }
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .aura-move::before { background: var(--crown-2) center / 100% 100% no-repeat; animation: flash-a 2.3s linear infinite; }
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .aura-move::after { background: var(--crown-3) center / 100% 100% no-repeat; animation: flash-b 3.7s linear infinite; }
+:root[data-look] .aura-move { animation: none; }
+:root[data-look] .aura-art::after { background: var(--crown-1) center / 100% 100% no-repeat; -webkit-mask-image: none; mask-image: none; border-radius: 0; }
+:root[data-look] .aura-move::before,
+:root[data-look] .aura-move::after { content: ""; position: absolute; inset: 0; will-change: opacity; }
+:root[data-look] .aura-move::before { background: var(--crown-2) center / 100% 100% no-repeat; animation: flash-a 2.3s linear infinite; }
+:root[data-look] .aura-move::after { background: var(--crown-3) center / 100% 100% no-repeat; animation: flash-b 3.7s linear infinite; }
 :root[data-look="flammen"] .aura-move::before { animation: flicker-a 1.3s ease-in-out infinite alternate; }
 :root[data-look="flammen"] .aura-move::after { animation: flicker-b 1.9s ease-in-out infinite alternate; }
+:root[data-look="wildnis"] .aura-move::before { animation: flicker-a 2.9s ease-in-out infinite alternate; }
+:root[data-look="wildnis"] .aura-move::after { animation: flicker-b 3.7s ease-in-out infinite alternate; }
 
 @keyframes flash-a { 0%, 5% { opacity: 1; } 7% { opacity: 0.15; } 9%, 15% { opacity: 1; } 22%, 100% { opacity: 0; } }
 @keyframes flash-b { 0%, 48% { opacity: 0; } 50%, 56% { opacity: 1; } 58% { opacity: 0.2; } 61%, 66% { opacity: 0.9; } 74%, 100% { opacity: 0; } }
 @keyframes flicker-a { from { opacity: 0.25; } to { opacity: 1; } }
 @keyframes flicker-b { from { opacity: 0.9; } to { opacity: 0.15; } }
 
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .run[data-paused] :is(.fx-lines, .fx-dots),
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .run[data-paused] .aura-move::before,
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .run[data-paused] .aura-move::after { animation-play-state: paused; }
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"])[data-anim="off"] :is(.fx-lines, .fx-dots),
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"])[data-anim="off"] .aura-move::before,
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"])[data-anim="off"] .aura-move::after { animation: none; opacity: 0.7; }
+:root[data-look] .run[data-paused] :is(.fx-lines, .fx-dots),
+:root[data-look] .run[data-paused] .aura-move::before,
+:root[data-look] .run[data-paused] .aura-move::after { animation-play-state: paused; }
+:root[data-look][data-anim="off"] :is(.fx-lines, .fx-dots),
+:root[data-look][data-anim="off"] .aura-move::before,
+:root[data-look][data-anim="off"] .aura-move::after { animation: none; opacity: 0.7; }
 @media (prefers-reduced-motion: reduce) {
-  :root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) :is(.fx-lines, .fx-dots),
-  :root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .aura-move::before,
-  :root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .aura-move::after { animation: none; opacity: 0.7; }
+  :root[data-look] :is(.fx-lines, .fx-dots),
+  :root[data-look] .aura-move::before,
+  :root[data-look] .aura-move::after { animation: none; opacity: 0.7; }
 }
 
 /* The portrait is the stage of the training: it fills the screen behind everything, under the
    same darkening as an own background picture (--photo-scrim, --photo-tint: tested to keep the
    text readable even over a bright moon or fire). An own picture of the user takes precedence. */
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .run:not(.has-photo) { background: var(--phase-bottom); }
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .run:not(.has-photo) .run-photo {
+:root[data-look] .run:not(.has-photo) { background: var(--phase-bottom); }
+:root[data-look] .run:not(.has-photo) .run-photo {
   display: block;
   position: absolute;
   inset: 0;
@@ -384,7 +395,7 @@
   background: var(--stage) 50% 22% / cover no-repeat;
   will-change: transform;
 }
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .run:not(.has-photo) .run-photo::after {
+:root[data-look] .run:not(.has-photo) .run-photo::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -392,4 +403,4 @@
     linear-gradient(180deg, color-mix(in srgb, var(--phase-top) var(--photo-tint), transparent), color-mix(in srgb, var(--phase-bottom) var(--photo-tint), transparent)),
     linear-gradient(var(--photo-scrim), var(--photo-scrim));
 }
-:root:is([data-look="ninja"], [data-look="flammen"], [data-look="donner"]) .run:not(.has-photo) .run-buddy { display: none; }
+:root[data-look] .run:not(.has-photo) .run-buddy { display: none; }

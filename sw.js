@@ -57,14 +57,6 @@ const ASSETS = [
   "./js/version.js",
   "./fonts/Bangers-Regular.ttf",
   "./fonts/OFL-Bangers.txt",
-  "./img/characters/donner-cheer.svg",
-  "./img/characters/donner-ready.svg",
-  "./img/characters/flammen-cheer.svg",
-  "./img/characters/flammen-ready.svg",
-  "./img/characters/ninja-cheer.svg",
-  "./img/characters/ninja-ready.svg",
-  "./img/characters/wildnis-cheer.svg",
-  "./img/characters/wildnis-ready.svg",
   "./img/fx/bolts-gold-1.svg",
   "./img/fx/bolts-gold-2.svg",
   "./img/fx/bolts-gold-3.svg",
@@ -89,6 +81,15 @@ const ASSETS = [
   "./img/fx/flames-crown-1.svg",
   "./img/fx/flames-crown-2.svg",
   "./img/fx/flames-crown-3.svg",
+  "./img/fx/leaves-crown-1.svg",
+  "./img/fx/leaves-crown-2.svg",
+  "./img/fx/leaves-crown-3.svg",
+  "./img/fx/wild-hot-1.svg",
+  "./img/fx/wild-hot-2.svg",
+  "./img/fx/wild-hot-3.svg",
+  "./img/fx/wild-soft-1.svg",
+  "./img/fx/wild-soft-2.svg",
+  "./img/fx/wild-soft-3.svg",
   "./img/portraits/donner-cheer-640.webp",
   "./img/portraits/donner-ready-216.webp",
   "./img/portraits/donner-ready-640.webp",
@@ -97,7 +98,10 @@ const ASSETS = [
   "./img/portraits/flammen-ready-640.webp",
   "./img/portraits/ninja-cheer-640.webp",
   "./img/portraits/ninja-ready-216.webp",
-  "./img/portraits/ninja-ready-640.webp"
+  "./img/portraits/ninja-ready-640.webp",
+  "./img/portraits/wildnis-cheer-640.webp",
+  "./img/portraits/wildnis-ready-216.webp",
+  "./img/portraits/wildnis-ready-640.webp"
 ];
 
 self.addEventListener('install', (event) => {

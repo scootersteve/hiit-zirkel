@@ -207,7 +207,7 @@ export function showSettings(root, { db, settings, media = {}, nav = 'none', onS
           <span class="cell-label">Muskelzuordnung der Übungen<span class="cell-hint">Bei ${fromDb} von ${EXERCISES.length} Übungen aus free-exercise-db (gemeinfrei), ${adjusted} davon angepasst. Die übrigen sind eigene Angaben.</span></span>
         </div>
         <div class="cell">
-          <span class="cell-label">Diese App<span class="cell-hint">Eigener Code, eigene Figuren der Designs und eigenes App-Symbol unter MIT-Lizenz. Die Porträts der Designs Flammen, Ninja und Donner sind mit einem KI-Bildgenerator (ChatGPT) nach eigenen Beschreibungen entstanden. Alle Figuren sind für diese App erfunden und stellen keine Figur aus einer Serie oder einem Spiel dar. Quelltext auf GitHub: scootersteve/hiit-zirkel.</span></span>
+          <span class="cell-label">Diese App<span class="cell-hint">Eigener Code, eigene Effekt-Grafiken und eigenes App-Symbol unter MIT-Lizenz. Die Porträts der Designs sind mit einem KI-Bildgenerator (ChatGPT) nach eigenen Beschreibungen entstanden. Alle Figuren sind für diese App erfunden und stellen keine Figur aus einer Serie oder einem Spiel dar. Quelltext auf GitHub: scootersteve/hiit-zirkel.</span></span>
         </div>
       </div>
 

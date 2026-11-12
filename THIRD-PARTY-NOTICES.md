@@ -43,7 +43,7 @@ SOFTWARE.
 - Übernommen: `fonts/Bangers-Regular.ttf`, unverändert. Wird nur geladen, wenn ein Design außer "Standard" gewählt ist.
 - Lizenz: SIL Open Font License 1.1, Copyright 2010 The Bangers Project Authors. Voller Text: `fonts/OFL-Bangers.txt`.
 
-## Porträts der Designs Flammen, Ninja und Donner
+## Porträts der Designs Flammen, Ninja, Wildnis und Donner
 
 - Dateien: `img/portraits/*.webp`
 - Entstanden mit einem KI-Bildgenerator (ChatGPT von OpenAI) nach eigenen Textbeschreibungen für diese
