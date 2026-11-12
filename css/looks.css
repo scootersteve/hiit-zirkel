@@ -335,7 +335,7 @@
 }
 
 /* every page: faint bolts or embers behind the content (part of the screen's own background) */
-:root[data-look] .screen:not(:has(.run)) {
+:root[data-look] .screen {
   background: var(--page-1) top center / 100% auto repeat-y, var(--page-2) center 40vh / 100% auto repeat-y, var(--bg);
 }
 

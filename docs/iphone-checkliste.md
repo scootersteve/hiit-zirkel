@@ -99,3 +99,7 @@ Am schnellsten mit dem Zirkel **"Schnelltest (alle Signale)"** (2:33 min).
 | 4 | Training bis zum Ende | großes Siegerbild auf dem Abschlussbildschirm, scharf, nicht verpixelt |
 | 5 | Flugmodus, App öffnen | Porträts erscheinen auch offline |
 | 6 | Übung hinzufügen, mehrere antippen, "Fertig", erneut "Übung hinzufügen" | gewählte Übungen tragen einen Haken, oben "… im Zirkel"; Tipp auf eine markierte nimmt sie heraus |
+
+## Szenen-Designs (Branch feature/teil-d): Messung Rechenzeit
+
+Im Browser gemessen (tools/perf.mjs, 30 s Training, CPU 4x gedrosselt, je 4 Läufe abwechselnd, Median): Standard 1.970 ms/min, Szenen 2.011 bis 2.581 ms/min, also bis etwa +30 %. Die Streuung zwischen Läufen ist groß (bis ±40 %); am stabilsten ist die Stilberechnung: Standard 272, Szenen 352 bis 407 ms/min. Keine Arbeit pro Bild (0 requestAnimationFrame, 60 Timer pro Minute wie bisher). Auf dem iPhone prüfen: Wird es bei 20 Minuten Training in einem Szenen-Design warm oder ruckelt der Ring? Wenn ja: "Bewegte Effekte" aus und notieren.
