@@ -209,7 +209,8 @@ try {
   await evaluate(`document.querySelector('[data-card="start"][data-id="sample-quick"]').click(); true`);
   await waitEval(`document.querySelector('.run')`);
   const runBuddy = await evaluate(`(() => { const b = document.querySelector('.run-buddy'); return { hidden: b.hidden, src: b.getAttribute('src'), opacity: getComputedStyle(b).opacity }; })()`);
-  check('Training im Design: Figur steht im Vorlauf dabei', !runBuddy.hidden && runBuddy.src === 'img/portraits/flammen-ready-216.webp' && Number(runBuddy.opacity) > 0.9, JSON.stringify(runBuddy));
+  const stage = await evaluate(`(() => { const p = document.querySelector('.run-photo'); const cs = getComputedStyle(p); return { display: cs.display, img: cs.backgroundImage.includes('flammen-ready-640.webp'), cover: getComputedStyle(p, '::after').backgroundImage.includes('gradient'), buddy: getComputedStyle(document.querySelector('.run-buddy')).display, crown: getComputedStyle(document.querySelector('.aura-art'), '::after').backgroundImage.includes('flames-crown-1') }; })()`);
+  check('Training im Design Flammen: Porträt als Bühne hinter der Phasenfarbe, Flammenkranz am Ring', stage.display === 'block' && stage.img && stage.cover && stage.buddy === 'none' && stage.crown, JSON.stringify(stage));
   await evaluate(`document.querySelector('[data-action="skip"]').click(); true`); // prep → work
   await sleep(500);
   const fx = await evaluate(`({ phase: document.querySelector('.run').dataset.phase, aura: getComputedStyle(document.querySelector('.ring-aura')).display,

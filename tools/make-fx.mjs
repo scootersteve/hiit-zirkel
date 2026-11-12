@@ -95,4 +95,60 @@ for (const [name, colors, opacity] of [['ice', ['#9fdcff', '#ffffff'], 1], ['sof
     writeFileSync(join(OUT, `bolts-${name}-${n}.svg`), svg('0 0 390 844', body, ` preserveAspectRatio="xMidYMid slice"${opacity < 1 ? ` opacity="${opacity}"` : ''}`));
   }
 }
-console.log(`img/fx: 3 Kränze, 6 Blitz-Ebenen`);
+
+// ================= fire look ("flammen") =================
+// flames-crown-<n>.svg  tongues of flame around the ring
+// fire-<c>-<n>.svg      flames rising from the bottom edge plus embers; c = hot (training) or
+//                       soft (faint embers, page backgrounds)
+
+// one tongue: base centre (bx, by), direction ang, length len, half width w, curl to one side
+function tongue(bx, by, ang, len, w, curl) {
+  const dx = Math.cos(ang), dy = Math.sin(ang), nx = -dy, ny = dx;
+  const p = (along, side) => `${r1(bx + dx * along + nx * side)} ${r1(by + dy * along + ny * side)}`;
+  return `M${p(0, -w)}C${p(len * 0.35, -w * 1.25)} ${p(len * 0.6, -w * 0.2 + curl)} ${p(len, curl * 1.6)}C${p(len * 0.62, w * 0.5 + curl)} ${p(len * 0.3, w * 1.2)} ${p(0, w)}Z`;
+}
+
+for (let n = 1; n <= 3; n++) {
+  const rand = rng(300 + n);
+  let outer = '';
+  let inner = '';
+  const count = 16;
+  for (let i = 0; i < count; i++) {
+    const ang = ((i + rand() * 0.7 + n * 0.31) / count) * Math.PI * 2;
+    const len = 7 + rand() * 9;
+    const w = 2.6 + rand() * 1.6;
+    const curl = (rand() - 0.5) * 3.2;
+    const bx = 65 + Math.cos(ang) * 48.2, by = 65 + Math.sin(ang) * 48.2;
+    outer += tongue(bx, by, ang, len, w, curl);
+    inner += tongue(bx, by, ang, len * 0.55, w * 0.5, curl * 0.5);
+  }
+  writeFileSync(join(OUT, `flames-crown-${n}.svg`),
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 130"><defs><radialGradient id="g" gradientUnits="userSpaceOnUse" cx="65" cy="65" r="65"><stop offset=".72" stop-color="#ffd24a"/><stop offset=".86" stop-color="#ff7a1a"/><stop offset="1" stop-color="#c7300f" stop-opacity=".1"/></radialGradient></defs><path d="${outer}" fill="url(#g)"/><path d="${inner}" fill="#fff3c4" fill-opacity=".85"/></svg>\n`);
+}
+
+for (const [name, opacity] of [['hot', 1], ['soft', 0.2]]) {
+  for (let n = 1; n <= 3; n++) {
+    const rand = rng(400 + n);
+    let flames = '';
+    let cores = '';
+    let embers = '';
+    for (let x = -20 + n * 9; x < 410; x += 26 + rand() * 20) {
+      const len = 70 + rand() * 150;
+      const w = 16 + rand() * 14;
+      const curl = (rand() - 0.5) * 26;
+      flames += tongue(x, 850, -Math.PI / 2, len, w, curl);
+      cores += tongue(x, 850, -Math.PI / 2, len * 0.5, w * 0.45, curl * 0.4);
+    }
+    for (let i = 0; i < 26; i++) {
+      const side = rand() < 0.5 ? rand() * 90 : 300 + rand() * 90;
+      const y = 40 + rand() * 720;
+      embers += `<circle cx="${r1(side)}" cy="${r1(y)}" r="${r1(1 + rand() * 2.4)}"/>`;
+    }
+    const body = name === 'hot'
+      ? `<defs><linearGradient id="f" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffd24a"/><stop offset=".45" stop-color="#ff7a1a" stop-opacity=".85"/><stop offset="1" stop-color="#c7300f" stop-opacity="0"/></linearGradient></defs><path d="${flames}" fill="url(#f)"/><path d="${cores}" fill="#fff3c4" fill-opacity=".7"/><g fill="#ffd24a">${embers}</g>`
+      : `<g fill="#ff7a1a">${embers}</g>`;
+    writeFileSync(join(OUT, `fire-${name}-${n}.svg`),
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" preserveAspectRatio="xMidYMax slice"${opacity < 1 ? ` opacity="${opacity}"` : ''}>${body}</svg>\n`);
+  }
+}
+console.log('img/fx: Blitze (Kränze, Ebenen) und Flammen (Kränze, Ebenen)');
